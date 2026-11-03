@@ -1000,7 +1000,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1091,7 +1091,9 @@ function save(k, v) { try { localStorage.setItem(KEY + '-' + k, JSON.stringify(v
 
 let profile = load('me', null);        // { code, name }
 const settings = Object.assign({ micId: '', outId: '', ns: true, ec: true, agc: true, inProf: 'custom', autoSens: true, sens: -50,
-  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100, cutOwn: true, livePreview: true, duck: true, duckAmt: 50, snd: {} }, load('settings', {}));
+  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100, cutOwn: true, livePreview: true, duck: false, duckAmt: 50, snd: {} }, load('settings', {}));
+// atenuação veio ligada na versão 14: desliga uma vez pra todo mundo (o volume da live e das vozes fica normal)
+if (!settings.duckOffV15) { settings.duck = false; settings.duckOffV15 = true; }
 // quem tinha desligado os sons antigos: leva pros interruptores novos
 if (settings.sndCall === false) settings.snd = { ...settings.snd, join: false, leave: false };
 if (settings.sndMute === false) settings.snd = { ...settings.snd, mute: false, unmute: false, deaf: false, undeaf: false };
