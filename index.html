@@ -67,7 +67,7 @@
   .card p{margin:0 0 4px;color:var(--muted)}
 
   #app{height:100%;display:flex}
-  nav{width:300px;flex:none;background:var(--panel);display:flex;flex-direction:column;border:1px solid var(--line);border-width:1px 1px 0 1px;border-radius:8px 0 0 0}
+  nav{width:330px;flex:none;background:var(--panel);display:flex;flex-direction:column;border:1px solid var(--line);border-width:1px 1px 0 1px;border-radius:8px 0 0 0}
   #friendsPanel{width:250px;flex:none;background:var(--panel);display:flex;flex-direction:column;border-left:1px solid var(--line)}
   .brand{padding:14px 16px;font-weight:700;font-size:17px;border-bottom:1px solid var(--bg);min-height:52px}
   #status{font-size:12px;font-weight:400;color:var(--muted)}
@@ -81,6 +81,26 @@
   .room:hover .join{visibility:visible}
   .who{display:flex;align-items:center;gap:8px;padding:3px 8px 3px 30px;font-size:14px;color:var(--muted)}
   .who .av{width:22px;height:22px;font-size:11px}
+  .who .wn{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .livepill{margin-left:auto;background:#da373c;color:#fff;font-size:10px;font-weight:800;letter-spacing:.3px;border-radius:4px;padding:1px 5px;cursor:pointer;flex:none}
+  .livepill:hover{filter:brightness(1.15)}
+  .leavelive{position:absolute;left:8px;bottom:8px;background:#000a;border:0;color:#fff;font-size:13px;padding:5px 10px;border-radius:6px;opacity:0;transition:opacity .15s;z-index:2}
+  .screen:hover .leavelive{opacity:1}
+  .leavelive:hover{background:#da373c}
+  #appPick .card{width:min(520px,100%);max-height:86vh}
+  #appPick h2{margin:0;font-size:20px}
+  .apList{overflow:auto;max-height:46vh;display:flex;flex-direction:column;gap:4px;margin-top:4px}
+  .apRow{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;background:#202024;cursor:pointer;border:1px solid transparent}
+  .apRow:hover{background:#29292e;border-color:var(--accent)}
+  .apRow.last{border-color:#5865f280}
+  .apRow .apIc{font-size:22px;width:28px;text-align:center;flex:none}
+  .apRow .nm{font-weight:600}
+  .apBtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+  .livecard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;background:#1a1a1e;border:1px solid var(--line);border-radius:10px;padding:20px}
+  .livecard .lcAv{width:72px;height:72px;font-size:30px}
+  .livecard .lcName{font-size:18px;font-weight:700}
+  .livecard .lcSub{color:var(--muted);font-size:14px}
+  .livecard button{margin-top:6px;font-weight:600}
   .who.speaking .av{outline-color:var(--green)}
   .hint{padding:6px 8px;font-size:13px;color:var(--muted)}
 
@@ -111,6 +131,20 @@
   .friend.off{opacity:.45}
   .friend .x{visibility:hidden}
   .friend:hover .x{visibility:visible}
+  /* lista da direita igual Discord: nome colorido pelo cargo, "Em voz" embaixo, botões só ao passar o mouse */
+  #friendsPanel .sec{text-transform:none;font-size:14px;font-weight:600;letter-spacing:0;color:#949ba4;margin:18px 8px 4px}
+  #friendsPanel .friend{gap:12px;padding:5px 8px;border-radius:6px;min-height:44px}
+  #friendsPanel .friend .av{width:34px;height:34px}
+  #friendsPanel .friend .nm{font-size:16px;font-weight:500;display:flex;align-items:center;gap:6px;color:#dbdee1}
+  #friendsPanel .friend .nmt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #friendsPanel .friend .crown{font-size:13px;flex:none}
+  #friendsPanel .friend .st{font-size:13px;display:flex;align-items:center;gap:4px;color:#b5bac1}
+  #friendsPanel .friend .st.invoice{color:#23a55a}
+  #friendsPanel .friend .st svg{width:14px;height:14px;fill:currentColor;flex:none}
+  #friendsPanel .friend .icon{display:none;padding:4px 6px}
+  #friendsPanel .friend:hover .icon{display:inline-block}
+  #friendsPanel .friend.off{opacity:.4}
+  #friendsPanel #reqBox .friend .icon{display:inline-block}
   .av{position:relative;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;flex:none;outline:2px solid transparent;outline-offset:1px;transition:outline-color .1s}
   .dot{position:absolute;right:-3px;bottom:-3px;width:13px;height:13px;border-radius:50%;border:3px solid var(--panel);background:#80848e}
   .dot.on{background:var(--green)}
@@ -140,6 +174,14 @@
   #empty{color:var(--muted);text-align:center;grid-column:1/-1}
   .screen{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
   .screen video{width:100%;height:100%;object-fit:contain;display:block}
+  .hideself{position:absolute;left:8px;bottom:8px;background:#000a;border:0;color:#fff;font-size:13px;padding:5px 10px;border-radius:6px;opacity:0;transition:opacity .15s;z-index:2}
+  .screen:hover .hideself{opacity:1}
+  .selfhidden{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#1a1a1e;z-index:1;text-align:center;padding:12px}
+  .screen.hiddenself .selfhidden{display:flex}
+  .screen.hiddenself .hideself{display:none}
+  .selfhidden .shT{font-weight:700;font-size:16px}
+  .selfhidden .shS{color:var(--muted);font-size:13px}
+  .selfhidden button{margin-top:6px}
   .screen .lab{position:absolute;left:8px;bottom:8px;background:#000a;padding:3px 9px;border-radius:6px;font-size:13px}
   .screen .fs{position:absolute;right:8px;top:8px;padding:4px 9px;background:#000a;border:0}
   .screen .q{position:absolute;left:8px;top:8px;background:#000a;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:600}
@@ -455,6 +497,11 @@
   .upanel .mebox .st svg{width:14px;height:14px;fill:currentColor;flex:none}
   .upanel .mebox .ib .ic{width:22px;height:22px}
   .upanel .mebox .ib.caret .ic{width:16px;height:16px}
+  /* botões mais juntos (igual Discord) pra sobrar espaço pro nome inteiro */
+  .upanel .mebox .ib{padding:5px}
+  .upanel .mebox .ib.caret{padding:5px 1px;margin-left:-5px}
+  .upanel .mebox .info{flex:1;min-width:0;margin-left:2px}
+  .upanel .mebox .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* barra dos servidores (início = mensagens diretas) */
   #rail{width:72px;flex:none;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding-top:12px;gap:8px}
   .rbtn{position:relative;width:48px;height:48px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;cursor:pointer;font-weight:700;font-size:15px;transition:border-radius .15s,background .15s}
@@ -656,7 +703,9 @@
       <div id="screens"><div id="empty">Ninguém está compartilhando a tela.</div></div>
       <div class="bar">
         <select id="quality" title="Qualidade da tela">
-          <option value="1080p60" selected>Full HD 1080p 60fps</option>
+          <option value="auto" selected>✨ Automático (melhor possível)</option>
+          <option value="1440p60">Quad HD 1440p 60fps</option>
+          <option value="1080p60">Full HD 1080p 60fps</option>
           <option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option>
           <option value="720p30">720p 30fps (internet fraca)</option>
@@ -806,9 +855,13 @@
         <h2>Transmissão</h2>
         <div class="lbl">Qualidade padrão da tela</div>
         <div class="selw"><span>🖥️</span><select id="sQuality">
+          <option value="auto">✨ Automático (melhor possível)</option>
+          <option value="1440p60">Quad HD 1440p 60fps (internet boa)</option>
           <option value="1080p60">Full HD 1080p 60fps</option><option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option><option value="720p30">720p 30fps (internet fraca)</option></select></div>
         <div class="tog"><div><b>Som da transmissão</b><div class="tip">Manda o som do PC (jogo, vídeo, música) junto com a tela. Quem assiste também pode desligar do lado dele.</div></div><input type="checkbox" class="tsw" id="sShareAudio"></div>
+        <div class="tog"><div><b>Cortar o som do próprio Concorde</b><div class="tip">Evita que as vozes da call voltem como eco pros amigos. Mas corta também qualquer som tocando no <b>mesmo navegador</b> do Concorde: se o filme estiver nele e não sair som, desligue isto (e use fone). Filme em outro programa ou navegador sai normal.</div></div><input type="checkbox" class="tsw" id="sCutOwn"></div>
+        <div class="tip">🎬 Pra filme: compartilhe a <b>janela do player</b> (aba "Janela") — vai só o som dela, sem eco. Ou "Tela inteira" com "Compartilhar áudio do sistema" ligado.</div>
         <div class="tip">Pra 60fps firme: feche o que não usa, prefira cabo de rede e deixe o jogo/janela em primeiro plano. O selo na sua tela mostra o fps real e o motivo se cair.</div>
       </section>
       <section data-page="sons">
@@ -837,7 +890,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 7;
+const APP_VERSION = 11;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -846,11 +899,20 @@ const ICE = { iceServers: [
   { urls: 'stun:global.stun.twilio.com:3478' },
 ]};
 const QUALITY = {
+  '1440p60': { w: 2560, h: 1440, fps: 60, kbps: 18000 }, // Quad HD: precisa de uns 20 Mbps de upload
   '1080p60': { w: 1920, h: 1080, fps: 60, kbps: 10000 },
   '1080p30': { w: 1920, h: 1080, fps: 30, kbps: 6000 },
   '720p60':  { w: 1280, h: 720,  fps: 60, kbps: 4500 },
   '720p30':  { w: 1280, h: 720,  fps: 30, kbps: 2500 },
 };
+// "Automático": pega a maior qualidade que a tela tem (Quad HD numa tela 1440p, Full HD numa 1080p), sempre 60fps.
+// Se a internet ou o PC apertarem, o próprio WebRTC baixa a resolução sozinho e sobe de novo quando melhora.
+function curQ() {
+  const v = $('quality').value;
+  if (v !== 'auto') return QUALITY[v];
+  const h = Math.round(window.screen.height * (devicePixelRatio || 1)); // "screen" sozinho é a transmissão
+  return h >= 1400 ? QUALITY['1440p60'] : QUALITY['1080p60'];
+}
 
 // Opus no máximo: voz 128kbps mono, som da transmissão 320kbps estéreo
 const VOICE_KBPS = 128, STREAM_KBPS = 320;
@@ -903,7 +965,7 @@ function save(k, v) { try { localStorage.setItem(KEY + '-' + k, JSON.stringify(v
 
 let profile = load('me', null);        // { code, name }
 const settings = Object.assign({ micId: '', outId: '', ns: true, ec: true, agc: true, inProf: 'custom', autoSens: true, sens: -50,
-  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100 }, load('settings', {}));
+  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100, cutOwn: true }, load('settings', {}));
 let friends = load('friends', []);     // [{ code, name }]
 const online = new Map();              // code -> { conn, name, theyAdded, lastSeen, room }
 const requests = new Map();            // code -> { conn, name }
@@ -1101,6 +1163,7 @@ function startPeer() {
       if (m.screenIn && m.screenIn !== call) m.screenIn.close();
       m.screenIn = call;
       m.screenKind = call.metadata.kind === 'cam' ? 'cam' : 'screen';
+      if (m.screenKind === 'screen') { m.live = true; m.watch = true; } // versão antiga manda direto: já conta como assistindo
       call.on('stream', s => showScreen(call.peer, s));
       call.on('close', () => { if (m.screenIn === call) { m.screenIn = null; hideScreen(call.peer); } });
     } else {
@@ -1176,7 +1239,7 @@ function cleanRoom(r) {
   const list = Array.isArray(r.members) ? r.members.slice(0, 25) : [];
   return {
     id: r.id, name: String(r.name || 'Call').slice(0, 30),
-    members: list.filter(x => x && codeOf(x.id)).map(x => ({ id: x.id, name: cleanName(x.name) })),
+    members: list.filter(x => x && codeOf(x.id)).map(x => ({ id: x.id, name: cleanName(x.name), live: !!x.live })),
     since: Number(r.since) || 0,
   };
 }
@@ -1307,8 +1370,8 @@ function renderFriends() {
   const now = Date.now();
 
   // todo mundo online: você, amigos e amigos de amigos
-  const people = [{ code: profile.code, name: profile.name + ' (você)', dot: 'on', extra: [],
-                    status: room ? '🔊 Em call: ' + room.name : 'Online · ' + myHandle() }];
+  // status igual Discord: "🔊 Em voz" pra quem está em call, nada pra quem só está online
+  const people = [{ code: profile.code, name: profile.name, dot: 'on', extra: [], status: room ? 'VOZ' : '' }];
   const offline = [];
   for (const f of friends) {
     if (isBanned(f.code)) continue;
@@ -1321,13 +1384,13 @@ function renderFriends() {
     }
     const x = el('button', 'icon x', '✕'); x.title = 'Remover amigo'; x.onclick = () => removeFriend(f.code); extra.push(x);
     if (o) people.push({ code: f.code, name: f.name, dot: ready ? 'on' : 'wait', extra,
-                         status: ready ? (o.room ? '🔊 Em call: ' + o.room.name : 'Online · ' + handleOf(f.code)) : 'Pedido enviado, aguardando' });
-    else offline.push({ code: f.code, name: f.name, dot: '', extra, status: 'Offline · ' + handleOf(f.code) });
+                         status: ready ? (o.room ? 'VOZ' : '') : 'Pedido enviado, aguardando' });
+    else offline.push({ code: f.code, name: f.name, dot: '', extra, status: '' });
   }
   for (const [code, p] of presence) {
     if (now - p.seen >= PRESENCE_TTL || code === profile.code || isFriend(code) || requests.has(code) || isBanned(code)) continue;
     const add = el('button', 'icon', '➕'); add.title = 'Adicionar amigo'; add.onclick = () => addFriend(code, p.name, p.user);
-    people.push({ code, name: p.name, dot: 'on', extra: [add], status: p.room ? '🔊 Em call: ' + p.room : 'Online · ' + (p.user ? '@' + p.user : '#' + code) });
+    people.push({ code, name: p.name, dot: 'on', extra: [add], status: p.room ? 'VOZ' : '' });
   }
 
   // separa por cargo, igual Discord (LIDER SUPREMO — 1, LIDERES 2 — 4...)
@@ -1351,9 +1414,16 @@ function renderFriends() {
 function personRow(x) {
   const d = el('div', 'friend' + (x.dot === '' ? ' off' : ''));
   const info = el('div', 'info');
-  const nm = el('div', 'nm', x.name); const c = topColor(x.code); if (c) nm.style.color = c;
-  if (x.code === OWNER) nm.textContent += ' 👑';
-  info.append(nm, el('div', 'st', x.status));
+  const nm = el('div', 'nm'); const c = topColor(x.code); if (c) nm.style.color = c;
+  nm.appendChild(el('span', 'nmt', nameOfCode(x.code) === x.code ? x.name : nameOfCode(x.code)));
+  if (x.code === OWNER) nm.appendChild(el('span', 'crown', '👑'));
+  info.appendChild(nm);
+  if (x.status === 'VOZ') {
+    const st = el('div', 'st invoice');
+    st.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>';
+    st.append(roomOfCode(x.code)?.live?.has(PREFIX + x.code) || (x.code === profile.code && screen && screenKind === 'screen') ? 'Ao vivo' : 'Em voz');
+    info.appendChild(st);
+  } else if (x.status) info.appendChild(el('div', 'st', x.status));
   d.append(avatar(x.name, x.dot, x.code), info, ...x.extra);
   const t = THEMES[channels['p-' + x.code]?.theme]?.bg;
   if (t) { d.classList.add('themed'); d.style.background = `linear-gradient(90deg,#1a1a1e 30%,#1a1a1eb8 62%,#1a1a1e40),${t}`; }
@@ -1413,7 +1483,8 @@ setInterval(() => {
 function statusMsg() {
   return { t: 'status', room: room ? {
     id: room.id, name: room.name, since: room.since,
-    members: [{ id: peer.id, name: profile.name }, ...[...members.values()].filter(m => m.name).map(m => ({ id: m.id, name: m.name }))],
+    members: [{ id: peer.id, name: profile.name, live: !!screen && screenKind === 'screen' },
+              ...[...members.values()].filter(m => m.name).map(m => ({ id: m.id, name: m.name, live: !!m.live }))],
   } : null };
 }
 function sendStatus() {
@@ -1437,6 +1508,7 @@ function allRooms() {
     const st = statusMsg().room;
     const r = map.get(room.id) || { id: room.id, name: room.name };
     r.members = new Map(st.members.map(x => [x.id, x.name]));
+    r.live = new Set(st.members.filter(x => x.live).map(x => x.id));
     r.since = room.since;
     map.set(room.id, r);
   }
@@ -1444,7 +1516,7 @@ function allRooms() {
     if (!o.theyAdded || !o.room) continue;
     let r = map.get(o.room.id);
     if (!r) { r = { id: o.room.id, name: o.room.name, members: new Map() }; map.set(r.id, r); }
-    if (!room || r.id !== room.id) for (const x of o.room.members) r.members.set(x.id, x.name);
+    if (!room || r.id !== room.id) for (const x of o.room.members) { r.members.set(x.id, x.name); if (x.live) (r.live || (r.live = new Set())).add(x.id); }
     if (o.room.since && (!r.since || o.room.since < r.since)) r.since = o.room.since;
   }
   // quem não é meu amigo mas está num canal (fico sabendo pela presença)
@@ -1501,7 +1573,7 @@ function renderNav() {
 }
 
 function chanRow(c, r) {
-  const frag = document.createDocumentFragment();
+  const frag = document.createDocumentFragment(), c0 = c;
   if (c.type === 'text') {
     const cur = view.type === 'text' && view.id === c.id;
     const row = el('div', 'chan' + (cur ? ' cur' : '') + (!cur && isUnread(c.id) ? ' unread' : ''));
@@ -1528,9 +1600,15 @@ function chanRow(c, r) {
     if (isBanned(code)) continue;
     const g = grantOf(code) || {};
     const tags = g.smute ? ' 🔇🛡️' : (self ? micMuted : m?.muted) ? ' 🔇' : '';
-    const live = (self ? screen : m?.screenIn) ? ' 🖥️' : '';
-    const nm = el('span', '', name + tags + live); const c = topColor(code); if (c) nm.style.color = c;
+    const isLive = r?.live?.has(id) || (self ? !!screen && screenKind === 'screen' : !!m?.live);
+    const nm = el('span', 'wn', name + tags); const c = topColor(code); if (c) nm.style.color = c;
     w.append(avatar(name, undefined, code), nm);
+    if (isLive) {
+      // selo AO VIVO (igual Discord): clicando, entra na call e assiste
+      const pill = el('span', 'livepill', 'AO VIVO'); pill.title = self ? 'Você está transmitindo' : `Assistir a transmissão de ${name}`;
+      pill.onclick = ev => { ev.stopPropagation(); if (!self) watchFrom(id, { id: c0.id, name: c0.name }, [...people.keys()]); };
+      w.appendChild(pill);
+    }
     w.title = handleOf(code);
     w.style.cursor = 'pointer';
     w.onclick = ev => { ev.stopPropagation(); openProfile(code); };
@@ -3234,7 +3312,8 @@ function setupCallData(conn) {
     conn.send({ t: 'hello', name: profile.name, user: profile.user, muted: micMuted, since: room?.since });
     // qualquer membro apresenta os outros: dá pra entrar pela call mesmo se quem criou saiu
     conn.send({ t: 'peers', list: [...members.keys()].filter(k => k !== conn.peer) });
-    if (screen) sendScreen(conn.peer);
+    // câmera vai direto; tela só pra quem clicar em "Assistir transmissão" (igual Discord)
+    if (screen) screenKind === 'cam' ? sendScreen(conn.peer) : conn.send({ t: 'live', on: true });
   });
   conn.on('data', msg => onCallData(conn.peer, msg));
   // se chegou uma conexão repetida, fechar a antiga não pode tirar a pessoa da call
@@ -3256,7 +3335,19 @@ function onCallData(id, msg) {
   } else if (msg.t === 'mute') {
     m.muted = !!msg.muted; renderMembers();
   } else if (msg.t === 'screen-stop') {
-    m.screenIn = null; hideScreen(id);
+    m.screenIn = null; m.live = false; m.watch = false; hideScreen(id); sendStatus();
+  } else if (msg.t === 'live') {
+    // a pessoa começou a transmitir a tela: aparece o cartão "Assistir transmissão"
+    const was = m.live; m.live = !!msg.on;
+    if (m.live && !was) { toast(`📺 ${m.name || 'Alguém'} está ao vivo`); logEvent(m.name || '...', 'começou a transmitir a tela'); }
+    if (m.live && pendingWatch === id) { pendingWatch = null; setWatch(id, true); }
+    renderMembers(); sendStatus();
+  } else if (msg.t === 'watch') {
+    // alguém entrou ou saiu da minha live
+    m.watching = !!msg.on;
+    if (m.watching && screen && screenKind === 'screen') { if (!m.screenOut) sendScreen(id); }
+    else if (!m.watching && screenKind === 'screen') { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
+    renderMembers();
   } else if (msg.t === 'mod') {
     onMod(msg, null);
   }
@@ -3515,7 +3606,7 @@ function paintSettings() {
   $('optAutoSens').checked = settings.autoSens; $('sensSlider').value = settings.sens;
   $('sensSlider').closest('.sensw').classList.toggle('auto', settings.autoSens);
   $('optNs').checked = settings.ns; $('optEc').checked = settings.ec; $('optAgc').checked = settings.agc;
-  $('sQuality').value = $('quality').value; $('sShareAudio').checked = $('shareAudio').checked;
+  $('sQuality').value = $('quality').value; $('sShareAudio').checked = $('shareAudio').checked; $('sCutOwn').checked = settings.cutOwn;
   $('optSndCall').checked = settings.sndCall; $('optSndMute').checked = settings.sndMute; $('optSndMsg').checked = settings.sndMsg; $('sndVol').value = settings.sndVol;
   const box = $('acctBox'); box.innerHTML = '';
   const row = (k, v, btn, fn) => {
@@ -3565,6 +3656,7 @@ $('sensSlider').oninput = () => { settings.sens = +$('sensSlider').value; sendGa
 for (const [id, key] of [['optNs', 'ns'], ['optEc', 'ec'], ['optAgc', 'agc']])
   $(id).onchange = () => { settings[key] = $(id).checked; applyMicSettings(); updateButtons(); };
 $('sQuality').onchange = () => { $('quality').value = $('sQuality').value; $('quality').onchange(); };
+$('sCutOwn').onchange = () => { settings.cutOwn = $('sCutOwn').checked; save('settings', settings); if (screen && screenKind === 'screen') toast('Vale a partir da próxima vez que você compartilhar a tela.'); };
 $('sShareAudio').onchange = () => { $('shareAudio').checked = $('sShareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
 for (const [id, key] of [['optSndCall', 'sndCall'], ['optSndMute', 'sndMute'], ['optSndMsg', 'sndMsg']])
   $(id).onchange = () => { settings[key] = $(id).checked; save('settings', settings); };
@@ -3573,7 +3665,7 @@ $('sndVol').onchange = () => SND.join(true);
 
 // ---------- compartilhar tela ----------
 function tune(call) {
-  const q = QUALITY[$('quality').value];
+  const q = curQ();
   setAudioBitrate(call, STREAM_KBPS);
   setTimeout(() => lockFramerate(call), 300); // separado: se o navegador recusar, o resto continua valendo
   try {
@@ -3599,7 +3691,7 @@ const hintFor = q => q.fps >= 60 ? 'motion' : 'detail';
 // ele perde alguns (monitor 120Hz dava 57). Quem trava o envio em 60 é o codificador (maxFramerate).
 const capRate = q => q.fps >= 60 ? { ideal: 120, max: 120 } : { ideal: q.fps, max: q.fps };
 function lockFramerate(call) {
-  const q = QUALITY[$('quality').value];
+  const q = curQ();
   try {
     for (const s of call.peerConnection.getSenders()) {
       if (s.track?.kind !== 'video') continue;
@@ -3613,13 +3705,43 @@ function lockFramerate(call) {
 function sendScreen(id) {
   const m = members.get(id); if (!m || !screen) return;
   if (m.screenOut) m.screenOut.close();
-  const kbps = QUALITY[$('quality').value].kbps;
+  const kbps = curQ().kbps;
   const call = peer.call(id, screen, { metadata: { type: 'screen', kind: screenKind, kbps }, sdpTransform: streamSdpFor(kbps) });
   m.screenOut = call;
   const pc = call.peerConnection;
   if (pc) pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') tune(call); });
   setTimeout(() => tune(call), 2000);
   setTimeout(() => tune(call), 6000);
+}
+
+// ---------- assistir / sair da live de alguém ----------
+let pendingWatch = null; // clicou em AO VIVO de outra call: assiste assim que conectar
+function setWatch(id, on) {
+  const m = members.get(id); if (!m) return;
+  m.watch = on;
+  if (m.data?.open) m.data.send({ t: 'watch', on });
+  if (!on) { try { m.screenIn?.close(); } catch {} m.screenIn = null; hideScreen(id); }
+  else { showView({ type: 'call' }); toast(`Entrando na live de ${m.name}...`); }
+  renderMembers();
+}
+// clicou no AO VIVO na lista de canais
+async function watchFrom(pid, r, people) {
+  if (room?.id === r.id) { if (members.get(pid)?.live) setWatch(pid, true); else pendingWatch = pid; return; }
+  pendingWatch = pid;
+  await joinRoom(r, people);
+}
+// cartões "fulano está ao vivo · Assistir transmissão" na área das telas
+function renderLiveCards() {
+  document.querySelectorAll('.livecard').forEach(x => x.remove());
+  for (const m of members.values()) {
+    if (!m.live || m.watch || m.screenIn) continue;
+    const card = el('div', 'screen livecard'); card.dataset.live = m.id;
+    const code = codeOf(m.id), av = avatar(m.name, undefined, code); av.classList.add('lcAv');
+    const b = el('button', 'primary', '▶ Assistir transmissão'); b.onclick = () => setWatch(m.id, true);
+    card.append(av, el('div', 'lcName', m.name), el('div', 'lcSub', '🔴 está transmitindo a tela'), b);
+    $('screens').appendChild(card);
+  }
+  $('empty').hidden = !!document.querySelector('.screen');
 }
 
 // câmera: usa o mesmo caminho da transmissão de tela (uma coisa por vez, igual Discord no PC)
@@ -3638,18 +3760,123 @@ async function startCam() {
   updateButtons(); renderMembers();
 }
 
+// ---------- som da transmissão: só do programa escolhido (Concorde.exe, igual Discord) ----------
+// O "som do sistema" do Windows leva junto as vozes da call que tocam no fone de quem transmite.
+// Pelo .exe, o Windows entrega o som de UM programa só (o filme, o jogo), e as vozes ficam só na call.
+const PCM_JS = `class Pcm extends AudioWorkletProcessor {
+  constructor() { super(); this.len = 48000 * 2 * 2; this.buf = new Float32Array(this.len); this.r = 0; this.w = 0; this.n = 0; this.on = false;
+    this.port.onmessage = e => {
+      const d = new Float32Array(e.data);
+      for (let i = 0; i < d.length; i++) { this.buf[this.w] = d[i]; this.w = (this.w + 1) % this.len; }
+      this.n = Math.min(this.n + d.length, this.len);
+      // ficou atrasado (mais de 250 ms guardados): pula pra perto do agora
+      if (this.n > 48000 * 2 * 0.25) { const keep = 48000 * 2 * 0.06; this.r = (this.w - keep + this.len) % this.len; this.n = keep; }
+    }; }
+  process(inputs, outputs) {
+    const L = outputs[0][0], R = outputs[0][1] || L;
+    if (!this.on) { if (this.n < 48000 * 2 * 0.04) { L.fill(0); R.fill(0); return true; } this.on = true; } // junta 40 ms antes de tocar
+    for (let i = 0; i < L.length; i++) {
+      if (this.n >= 2) { L[i] = this.buf[this.r]; R[i] = this.buf[(this.r + 1) % this.len]; this.r = (this.r + 2) % this.len; this.n -= 2; }
+      else { L[i] = 0; R[i] = 0; this.on = false; }
+    }
+    return true;
+  }
+}
+registerProcessor('tc-pcm', Pcm);`;
+let appAudio = null; // { ws, ctx } enquanto manda o som de um programa
+async function fetchApps() {
+  try {
+    const r = await fetch('/api/apps', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' });
+    if (!r.ok) return null; // site ou .exe antigo: usa o som do sistema
+    const j = await r.json();
+    return j.supported ? j.apps : null;
+  } catch { return null; }
+}
+async function appAudioTrack(pid, name) {
+  stopAppAudio();
+  const ctx = new AudioContext({ sampleRate: 48000 });
+  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([PCM_JS], { type: 'text/javascript' })));
+  const node = new AudioWorkletNode(ctx, 'tc-pcm', { numberOfInputs: 0, outputChannelCount: [2] });
+  const dest = ctx.createMediaStreamDestination(); dest.channelCount = 2; node.connect(dest);
+  const ws = new WebSocket(`ws://${location.host}/api/appaudio?pid=${pid}`); ws.binaryType = 'arraybuffer';
+  ws.onmessage = e => {
+    if (typeof e.data === 'string') return toast('🔇 Som do ' + name + ': ' + e.data.replace(/^erro:/, ''));
+    node.port.postMessage(e.data, [e.data]);
+  };
+  appAudio = { ws, ctx, name };
+  const t = dest.stream.getAudioTracks()[0]; t.contentHint = 'music';
+  return t;
+}
+function stopAppAudio() {
+  if (!appAudio) return;
+  try { appAudio.ws.close(); } catch {}
+  try { appAudio.ctx.close(); } catch {}
+  appAudio = null;
+}
+// janelinha: de qual programa vai o som? (resolve com o app, 'system', null = sem som, ou undefined = cancelou)
+const MEDIA_APPS = /chrome|msedge|firefox|opera|brave|vlc|mpc|potplayer|netflix|prime|disney|spotify|steam|epic|riot|league|valorant|cs2|gta|minecraft|roblox|fortnite/i;
+function pickAudioApp(apps) {
+  return new Promise(resolve => {
+    const last = load('lastAudioApp', '');
+    apps.sort((a, b) => (b.name === last) - (a.name === last) || MEDIA_APPS.test(b.name) - MEDIA_APPS.test(a.name) || a.name.localeCompare(b.name));
+    const wrap = el('div', 'modal'); wrap.id = 'appPick';
+    const card = el('div', 'card');
+    card.append(el('h2', '', '🔊 De onde vem o som da live?'),
+      el('p', '', 'Escolha o programa do filme ou do jogo. Vai só o som dele — as vozes da call continuam só na call, sem sair duplicadas.'));
+    const find = document.createElement('input'); find.placeholder = 'Buscar programa...';
+    const list = el('div', 'apList');
+    const done = v => { wrap.remove(); resolve(v); };
+    const icon = n => /chrome|msedge|firefox|opera|brave/i.test(n) ? '🌐' : /vlc|mpc|potplayer|netflix|prime|disney/i.test(n) ? '🎬' : /spotify/i.test(n) ? '🎵' : MEDIA_APPS.test(n) ? '🎮' : '🪟';
+    const paint = () => {
+      list.innerHTML = '';
+      const q = find.value.trim().toLowerCase();
+      for (const a of apps.filter(a => !q || (a.name + ' ' + a.title).toLowerCase().includes(q))) {
+        const row = el('div', 'apRow' + (a.name === last ? ' last' : ''));
+        const info = el('div', 'info'); info.append(el('div', 'nm', a.title), el('div', 'st', a.name + '.exe'));
+        row.append(el('span', 'apIc', icon(a.name)), info);
+        row.onclick = () => { save('lastAudioApp', a.name); done(a); };
+        list.appendChild(row);
+      }
+      if (!list.children.length) list.appendChild(el('div', 'hint', 'Nenhum programa com esse nome.'));
+    };
+    find.oninput = paint;
+    const btns = el('div', 'apBtns');
+    const none = el('button', '', '🔇 Sem som'); none.onclick = () => done(null);
+    const sys = el('button', '', 'Som do PC inteiro'); sys.title = 'Leva tudo que toca no seu PC, inclusive as vozes da call';
+    sys.onclick = () => done('system');
+    const cancel = el('button', '', 'Cancelar'); cancel.onclick = () => done(undefined);
+    btns.append(none, sys, cancel);
+    card.append(find, list, btns);
+    wrap.appendChild(card);
+    wrap.onclick = e => { if (e.target === wrap) done(undefined); };
+    document.body.appendChild(wrap);
+    paint(); find.focus();
+  });
+}
+
 async function startShare() {
   if (!room) return toast('Entre num canal de voz pra compartilhar a tela.');
-  const q = QUALITY[$('quality').value];
+  const apps = await fetchApps();
+  if (!apps) return beginShare('system'); // site ou Windows antigo: som do sistema, como antes
+  const choice = await pickAudioApp(apps);
+  if (choice === undefined) return toast('Compartilhamento cancelado.');
+  return beginShare(choice);
+}
+// audioSrc: 'system' (som do PC inteiro), null (sem som) ou { pid, name } (só o som desse programa)
+async function beginShare(audioSrc) {
+  const q = curQ();
   const old = screen;
+  const sysAudio = audioSrc === 'system';
   try {
     const got = await navigator.mediaDevices.getDisplayMedia({
       video: { width: { ideal: q.w }, height: { ideal: q.h }, frameRate: capRate(q) },
       // som do PC cru (sem filtros de voz), em estéreo, e sem as vozes da própria call (evita eco)
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false,
-               channelCount: 2, sampleRate: 48000, suppressLocalAudioPlayback: false, restrictOwnAudio: true },
-      systemAudio: 'include',
-      windowAudio: 'system',
+      // restrictOwnAudio tira as vozes da call do som (sem eco), mas no Windows corta TODO o som do
+      // navegador do Concorde: filme tocando nesse mesmo navegador fica mudo. Dá pra desligar nas configurações.
+      audio: sysAudio ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+               channelCount: 2, sampleRate: 48000, suppressLocalAudioPlayback: false, restrictOwnAudio: settings.cutOwn } : false,
+      systemAudio: sysAudio ? 'include' : 'exclude',
+      windowAudio: 'window', // compartilhando uma janela (o player do filme), vai o som só dela
       surfaceSwitching: 'include',
       selfBrowserSurface: 'exclude',
       monitorTypeSurfaces: 'include',
@@ -3658,28 +3885,39 @@ async function startShare() {
     screen = got;
   } catch { toast('Compartilhamento cancelado.'); return; }
   screenKind = 'screen';
+  if (audioSrc && audioSrc.pid) {
+    try { screen.addTrack(await appAudioTrack(audioSrc.pid, audioSrc.name)); toast(`🔊 Som da live: só do ${audioSrc.name} (as vozes ficam só na call)`); }
+    catch { toast('Não deu pra pegar o som desse programa. A live vai sem som.'); }
+  }
   screen.getAudioTracks().forEach(t => { t.enabled = $('shareAudio').checked; t.contentHint = 'music'; });
   const vt = screen.getVideoTracks()[0];
   vt.contentHint = hintFor(q);
   vt.onended = stopShare;
   showScreen('me', screen);
-  for (const id of members.keys()) sendScreen(id);
-  if (!screen.getAudioTracks().length) toast('Sem som: escolha "Tela inteira" e deixe ligado "Compartilhar áudio do sistema" na janelinha.');
+  // avisa que está ao vivo; a tela vai pra quem clicar em "Assistir transmissão"
+  for (const m of members.values()) { m.watching = false; if (m.screenOut) { try { m.screenOut.close(); } catch {} m.screenOut = null; } }
+  broadcast({ t: 'live', on: true });
+  sendStatus();
+  if (sysAudio && !screen.getAudioTracks().length) toast('Sem som: escolha "Tela inteira" e deixe ligado "Compartilhar áudio do sistema" na janelinha.');
   updateButtons(); renderMembers();
 }
 
 function stopShare() {
   if (!screen) return;
   screen.getTracks().forEach(t => t.stop());
+  stopAppAudio();
   screen = null;
-  for (const m of members.values()) { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
+  for (const m of members.values()) { try { m.screenOut?.close(); } catch {} m.screenOut = null; m.watching = false; }
   broadcast({ t: 'screen-stop' });
   hideScreen('me');
+  sendStatus();
   updateButtons(); if (room) renderMembers();
 }
 $('btnShare').onclick = () => screen ? stopShare() : startShare();
 
-{ const q = load('quality', '1080p60'); if (QUALITY[q]) $('quality').value = q; }
+{ // quem já tinha escolhido uma qualidade passa uma vez pro Automático (novo padrão)
+  if (!load('qAuto', false)) { save('quality', 'auto'); save('qAuto', true); }
+  const q = load('quality', 'auto'); if (q === 'auto' || QUALITY[q]) $('quality').value = q; }
 $('shareAudio').checked = load('shareAudio', true);
 $('shareAudio').onchange = () => {
   const on = $('shareAudio').checked;
@@ -3692,7 +3930,7 @@ $('shareAudio').onchange = () => {
 $('quality').onchange = () => {
   save('quality', $('quality').value);
   if (!screen) return;
-  const q = QUALITY[$('quality').value];
+  const q = curQ();
   const vt = screen.getVideoTracks()[0];
   vt.contentHint = hintFor(q);
   vt.applyConstraints({ width: { ideal: q.w }, height: { ideal: q.h }, frameRate: capRate(q) }).catch(() => {});
@@ -3709,9 +3947,25 @@ function showScreen(id, stream) {
   const tile = el('div', 'screen'); tile.dataset.sid = id;
   const v = document.createElement('video');
   v.autoplay = true; v.playsInline = true; v.srcObject = stream;
-  if (self) { v.muted = true; v.dataset.self = '1'; }
+  if (self) {
+    v.muted = true; v.dataset.self = '1';
+    // ocultar a própria transmissão: some só pra você (economiza o PC), os amigos continuam vendo
+    const hid = el('div', 'selfhidden');
+    hid.append(el('div', 'shT', '🙈 Sua transmissão está oculta pra você'), el('div', 'shS', 'Os amigos continuam vendo normalmente'));
+    const show = el('button', 'primary', 'Mostrar'); hid.appendChild(show);
+    const hide = el('button', 'hideself', '🙈 Ocultar'); hide.title = 'Esconder sua transmissão só pra você';
+    const setHidden = on => { tile.classList.toggle('hiddenself', on); v.style.visibility = on ? 'hidden' : ''; save('hideSelf', on); };
+    hide.onclick = () => setHidden(true); show.onclick = () => setHidden(false);
+    tile.append(hid, hide);
+    setTimeout(() => setHidden(load('hideSelf', false)));
+  }
   else { v.muted = deaf; v.volume = (streamVol.get(id) ?? 1) * outGain(); setSink(v); }
   const lab = el('div', 'lab');
+  if (!self && members.get(id)?.screenKind !== 'cam') {
+    const lv = el('button', 'leavelive', '✕ Sair da live'); lv.title = 'Parar de assistir';
+    lv.onclick = () => setWatch(id, false);
+    tile.appendChild(lv);
+  }
   const fs = el('button', 'fs', '⛶'); fs.title = 'Tela cheia';
   const toggleFs = () => document.fullscreenElement ? document.exitFullscreen() : tile.requestFullscreen();
   fs.onclick = toggleFs; v.ondblclick = toggleFs;
@@ -3735,11 +3989,15 @@ function showScreen(id, stream) {
     tile.appendChild(ctl);
     paint();
     if (!stream.getAudioTracks().length) mute.title = 'Essa transmissão está sem som';
-    logEvent(members.get(id)?.name || '...', 'começou a transmitir a tela');
   }
   $('screens').appendChild(tile);
   relabel(id);
-  v.play().catch(() => {});
+  // se o navegador não deixar tocar com som sozinho, toca mudo e o som volta no primeiro clique
+  v.play().catch(() => {
+    v.muted = true; v.play().catch(() => {});
+    toast('🔊 Clique na transmissão pra ligar o som');
+    tile.addEventListener('click', () => { if (!streamMuted.has(id) && !deaf) v.muted = false; }, { once: true });
+  });
   $('empty').hidden = true;
   renderMembers();
 }
@@ -3766,7 +4024,7 @@ setInterval(async () => {
         if (s) { w = s.width; h = s.height; fps = s.frameRate; }
       }
       if (!h) continue;
-      badge.textContent = `${h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}${why}`;
+      badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}${why}`;
       badge.classList.toggle('hd', h >= 1080 && !why);
       badge.title = why ? 'A qualidade caiu por causa ' + (why.includes('internet') ? 'da internet (upload). Tente 30fps ou 720p.' : 'do PC pesado. Feche programas ou use 720p.') : 'Qualidade que está saindo pros amigos';
       continue;
@@ -3777,7 +4035,7 @@ setInterval(async () => {
       } catch {}
     }
     if (!h) continue;
-    badge.textContent = `${h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}`;
+    badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}`;
     badge.classList.toggle('hd', h >= 1080);
   }
 }, 2000);
@@ -3800,6 +4058,7 @@ function renderMembers() {
   box.classList.toggle('compact', !!document.querySelector('.screen'));
   box.appendChild(memberEl(me, true));
   for (const m of members.values()) box.appendChild(memberEl(m, false));
+  renderLiveCards();
   const n = 1 + [...members.values()].filter(m => m.name).length;
   $('callCount').textContent = `· ${n} ${n === 1 ? 'pessoa' : 'pessoas'} na call`;
   renderRooms();
@@ -3817,7 +4076,8 @@ function memberEl(m, self) {
   const tags = [];
   if (self ? micMuted : m.muted) tags.push('🔇 mudo');
   if (self && deaf) tags.push('🎧');
-  if (self ? !!screen : !!m.screenIn) tags.push('🖥️ ao vivo');
+  if (self ? !!screen && screenKind === 'screen' : !!m.live) tags.push('🔴 AO VIVO');
+  if (self && screen) { const w = [...members.values()].filter(x => x.watching).length; if (screenKind === 'screen') tags.push(`👀 ${w} assistindo`); }
   const code = self ? profile.code : codeOf(m.id);
   if (grantOf(code)?.smute) tags.unshift('🛡️ silenciado no servidor');
   if (!self && localMuted.has(code)) tags.push('🔕 silenciado por você');
@@ -3877,7 +4137,7 @@ $('vbShare').onclick = () => screen && screenKind === 'screen' ? stopShare() : s
 $('vbCam').onclick = () => screen && screenKind === 'cam' ? stopShare() : startCam();
 $('vbSound').onclick = () => { $('shareAudio').checked = !$('shareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
 $('vbQual').onclick = e => popMenu(e, () => Object.entries({
-  '1080p60': 'Full HD 1080p 60fps', '1080p30': 'Full HD 1080p 30fps', '720p60': '720p 60fps', '720p30': '720p 30fps (internet fraca)',
+  auto: '✨ Automático (melhor possível)', '1440p60': 'Quad HD 1440p 60fps', '1080p60': 'Full HD 1080p 60fps', '1080p30': 'Full HD 1080p 30fps', '720p60': '720p 60fps', '720p30': '720p 30fps (internet fraca)',
 }).map(([k, label]) => ({ label, check: $('quality').value === k, keep: true, fn: () => { $('quality').value = k; $('quality').onchange(); } })));
 $('btnMicMenu').onclick = async e => {
   e.stopPropagation();
