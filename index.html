@@ -496,7 +496,7 @@
   #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:90vw;text-align:center}
   #toast.show{opacity:1}
 
-  .modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:15;padding:16px}
+  .modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:17;padding:16px}
   .modal .card{max-height:92vh;overflow-y:auto}
   .modal .lbl{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-top:4px}
   .modal textarea{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font:inherit;resize:vertical}
@@ -1064,7 +1064,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -4912,7 +4912,7 @@ $('loGo').onclick = async () => {
   try { if (room) leaveCall(); } catch {}
   await sealVault().catch(() => {});
   await backupAccount(false, true); // guarda a conta agora (no PC e no OneDrive) antes de apagar daqui
-  if (await isExeP) await fetch('/api/backup', { method: 'DELETE', headers: { 'X-TelaCall': '1' } }).catch(() => {});
+  if (!perfil && await isExeP) await fetch('/api/backup?user=' + encodeURIComponent(profile.user || ''), { method: 'DELETE', headers: { 'X-TelaCall': '1' } }).catch(() => {});
   try { peer?.destroy(); lookupPeer?.destroy(); } catch {}
   profile = null;
   for (const k of Object.keys(localStorage)) if (k.startsWith(KEY + '-') && !k.slice(KEY.length + 1).includes('-')) localStorage.removeItem(k);
