@@ -1064,7 +1064,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1154,7 +1154,12 @@ function load(k, d) { try { return JSON.parse(localStorage.getItem(KEY + '-' + k
 function save(k, v) {
   try { localStorage.setItem(KEY + '-' + k, JSON.stringify(v)); } catch {}
   if (k === 'me' || k === 'friends' || k === 'userPrefs') scheduleVault(); // a cópia com senha acompanha
+  // mudou algo importante: a cópia no PC/OneDrive é atualizada logo (não espera os 2 minutos)
+  if (/^(me|friends|msgs|dmOpen|dmClosed|channels|ops|userPrefs|vkey|vault|vaults|favs|reminders|settings)$/.test(k)) {
+    clearTimeout(backupTimer); backupTimer = setTimeout(() => backupAccount(false), 8000);
+  }
 }
+var backupTimer = null;
 
 let profile = load('me', null);        // { code, name }
 const settings = Object.assign({ micId: '', outId: '', ns: true, ec: true, agc: true, inProf: 'custom', autoSens: true, sens: -50,
@@ -5148,16 +5153,70 @@ $('pmSave').onclick = async () => {
 // conta antiga sem senha: pede pra criar (uma vez a cada vez que abre)
 function askPasswordOnce() { if (!perfil && profile && !load('vkey', null)) openPassModal(); }
 
+// Ao abrir: junta a cópia do PC com o que o navegador lembra. O navegador do app às vezes "esquece" uma parte
+// (amigos, conversas) quando o PC desliga; aqui tudo que só existe na cópia volta, sem apagar nada novo.
+function mergeLocalBackup(data) {
+  if (!data || !data[KEY + '-me']) return false;
+  let theirs = null, mine = load('me', null); try { theirs = JSON.parse(data[KEY + '-me']); } catch {}
+  if (!theirs?.code || theirs.code !== mine?.code) return false;
+  const get = (k, d) => { try { return JSON.parse(data[KEY + '-' + k]) ?? d; } catch { return d; } };
+  let changed = false;
+  const put = (k, v) => { save(k, v); changed = true; };
+  // chaves que sumiram daqui: volta a da cópia
+  for (const [k, v] of Object.entries(data))
+    if (k.startsWith(KEY + '-') && !k.slice(KEY.length + 1).includes('-') && typeof v === 'string' && localStorage.getItem(k) == null) { localStorage.setItem(k, v); changed = true; }
+  // amigos: junta os dois lados
+  const fr = load('friends', []), frB = get('friends', []);
+  const addF = (Array.isArray(frB) ? frB : []).filter(f => f?.code && !fr.some(x => x.code === f.code));
+  if (addF.length) put('friends', [...fr, ...addF]);
+  // mensagens: junta por canal, sem repetir
+  const ms = load('msgs', {}), msB = get('msgs', {});
+  let mChanged = false;
+  for (const [ch, list] of Object.entries(msB || {})) {
+    if (!Array.isArray(list)) continue;
+    const cur = ms[ch] || [], ids = new Set(cur.map(m => m.id));
+    const add = list.filter(m => m?.id && !ids.has(m.id));
+    if (add.length) { ms[ch] = [...cur, ...add].sort((a, b) => a.ts - b.ts); mChanged = true; }
+  }
+  if (mChanged) put('msgs', ms);
+  // conversas abertas, canais, ações (reações etc.), contas guardadas dos amigos, apelidos: junta o que faltar
+  const dmo = load('dmOpen', []), dmoB = get('dmOpen', []);
+  const addD = (Array.isArray(dmoB) ? dmoB : []).filter(x => !dmo.includes(x));
+  if (addD.length) put('dmOpen', [...dmo, ...addD]);
+  for (const k of ['channels', 'ops', 'vaults', 'userPrefs', 'lastRead']) {
+    const a = load(k, {}), b = get(k, {});
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a)) continue;
+    let c = false;
+    for (const [id, v] of Object.entries(b)) if (!(id in a)) { a[id] = v; c = true; }
+    if (c) put(k, a);
+  }
+  return changed;
+}
+async function quickBackup() {
+  if (perfil || !(await Promise.race([isExeP, new Promise(r => setTimeout(() => r(false), 1500))]))) return null;
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 2000);
+    const r = await fetch('/api/backup', { headers: { 'X-TelaCall': '1' }, cache: 'no-store', signal: ctl.signal });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
 // liga o app só no fim, quando tudo acima já existe
 if (typeof Peer === 'undefined') {
   // PC ligou e a internet ainda não voltou: tenta de novo sozinho
   document.body.innerHTML = '<div style="height:100%;display:grid;place-items:center;color:#b5bac1;font:16px Noto Sans,Segoe UI,sans-serif;text-align:center">Sem internet...<br>O Concorde tenta de novo sozinho.</div>';
   setTimeout(() => location.reload(), 8000);
-} else if (profile) {
+} else if (profile) (async () => {
   try { sessionStorage.removeItem('tcRestoring'); } catch {}
+  // junta o que o navegador esqueceu (uma vez por abertura, pra nunca ficar recarregando)
+  let merged = false; try { merged = sessionStorage.getItem('tcMerged') === '1'; } catch {}
+  if (!merged) {
+    try { sessionStorage.setItem('tcMerged', '1'); } catch {}
+    if (mergeLocalBackup(await quickBackup())) return location.reload();
+  }
   boot(); setTimeout(askAutostartOnce, 4000); setTimeout(() => backupAccount(false), 15000);
   setTimeout(() => sealVault().catch(() => {}), 8000); setTimeout(askPasswordOnce, 6000);
-}
+})();
 else restoreAccount().then(ok => {
   if (ok) return location.reload();
   $('setup').hidden = false;
