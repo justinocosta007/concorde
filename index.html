@@ -183,6 +183,10 @@
   .apRow .nm{font-weight:600}
   .apBtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
   .livecard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;background:#1a1a1e;border:1px solid var(--line);border-radius:10px;padding:20px}
+  .pcLive{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .pcLiveImg{position:relative;aspect-ratio:16/9;border-radius:8px;background:#000 center/cover no-repeat;display:grid;place-items:center;color:var(--muted);font-size:12px;overflow:hidden}
+  .pcLivePill{position:absolute;left:8px;top:8px;margin:0}
+  .pcLive button{width:100%;font-weight:600}
   .livecard{position:relative;overflow:hidden}
   .livecard .lcPrev{position:absolute;inset:0;background:center/cover no-repeat;filter:brightness(.45) blur(1px);z-index:0}
   .livecard > :not(.lcPrev){position:relative;z-index:1}
@@ -1000,7 +1004,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1416,6 +1420,12 @@ function onFriendData(code, conn, m) {
     renderFriends(); renderRooms();
   } else if (!isFriend(code) || !o?.theyAdded) {
     return; // daqui pra baixo, só amigos confirmados
+  } else if (m.t === 'livepreview') {
+    if (typeof m.img === 'string' && m.img.length < 80000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(m.img)) {
+      livePrevs.set(code, { img: m.img, ts: Date.now() });
+      const pv = document.querySelector(`#profCard .pcLive[data-code="${code}"] .pcLiveImg`);
+      if (pv) pv.style.backgroundImage = `url("${m.img}")`;
+    }
   } else if (m.t === 'mod') {
     onMod(m, code);
   } else if (m.t === 'presence') {
@@ -2315,6 +2325,20 @@ function openProfile(code) {
   const self = code === profile.code;
   const name = nameOfCode(code), u = self ? profile.user : userOf(code) || presence.get(code)?.user;
   const body = fillProfileCard($('profCard'), code);
+  // está ao vivo? mostra a prévia da live e o botão de assistir (igual Discord)
+  const pid = PREFIX + code, r = roomOfCode(code);
+  if (!self && (r?.live?.has(pid) || members.get(pid)?.live)) {
+    const box = el('div', 'pcLive'); box.dataset.code = code;
+    const img = el('div', 'pcLiveImg');
+    const prev = members.get(pid)?.preview || (Date.now() - (livePrevs.get(code)?.ts || 0) < 60000 ? livePrevs.get(code).img : '');
+    if (prev) img.style.backgroundImage = `url("${prev}")`; else img.appendChild(el('span', '', '📺 A prévia aparece em alguns segundos'));
+    img.appendChild(el('span', 'livepill pcLivePill', 'AO VIVO'));
+    const watch = el('button', 'green', '▶ Assistir transmissão');
+    const rr = r || allRooms().find(x => x.id === room?.id);
+    watch.onclick = () => { closeProfile(); if (rr) watchFrom(pid, { id: rr.id, name: rr.name }, [...rr.members.keys()]); else setWatch(pid, true); };
+    box.append(img, watch);
+    body.appendChild(box);
+  }
   const acts = el('div', 'pcActs');
   if (self) { const b = el('button', 'primary', '✏️ Editar perfil'); b.onclick = () => { closeProfile(); openProfileEdit(); }; acts.appendChild(b); }
   else {
@@ -4249,6 +4273,7 @@ function sendScreen(id) {
 
 // ---------- assistir / sair da live de alguém ----------
 let pendingWatch = null; // clicou em AO VIVO de outra call: assiste assim que conectar
+const livePrevs = new Map(); // código do amigo -> { img, ts }: prévia da live dele (pra quem está fora da call)
 function setWatch(id, on) {
   const m = members.get(id); if (!m) return;
   m.watch = on;
@@ -4265,6 +4290,8 @@ function sendLivePreview(onlyId) {
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   const img = c.toDataURL('image/jpeg', 0.6);
   for (const m of members.values()) if (m.data?.open && !m.watching && (!onlyId || m.id === onlyId)) m.data.send({ t: 'preview', img });
+  // amigos fora da call também veem a prévia (no cartão ao clicar no nome)
+  if (!onlyId) for (const o of online.values()) if (o.theyAdded && o.conn.open) o.conn.send({ t: 'livepreview', img });
 }
 setInterval(sendLivePreview, 10000);
 // clicou no AO VIVO na lista de canais
