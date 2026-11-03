@@ -332,6 +332,16 @@
   .sitem{padding:8px 10px;border-radius:8px;cursor:pointer;color:#b5bac1;font-size:15px}
   .sitem:hover{background:#232327;color:var(--text)}
   .sitem.cur{background:#2e2f35;color:var(--text);font-weight:600}
+  .ssep{height:1px;background:#2e2e33;margin:8px 10px}
+  .sout{padding:8px 10px;border-radius:8px;cursor:pointer;color:#f23f43;font-size:15px;display:flex;align-items:center;gap:8px}
+  .sout .ic{width:18px;height:18px;fill:currentColor}
+  .sout:hover{background:#f23f431a}
+  #acctList{display:flex;flex-direction:column;gap:6px}
+  #acctList .acc{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#2b2d31;cursor:pointer;text-align:left}
+  #acctList .acc:hover{background:#35373c}
+  #acctList .acc .av{width:32px;height:32px;flex:none;font-size:14px}
+  #acctList .acc b{display:block;font-size:14px}
+  #acctList .acc span{font-size:12px;color:#949ba4}
   .ssub{padding:6px 10px 6px 30px;margin-left:16px;border-left:2px solid #2e2e33;color:var(--muted);cursor:pointer;font-size:14px}
   .ssub:hover{color:var(--text)}
   .ssub.cur{color:var(--text);border-left-color:var(--text)}
@@ -910,6 +920,13 @@
     <div class="pmB"><button id="pmLater">Depois</button><button id="pmSave" class="primary">Salvar senha</button></div>
   </div>
 </div>
+<div id="logoutModal" class="modal" hidden>
+  <div class="card" style="width:min(440px,100%);display:flex;flex-direction:column;gap:10px">
+    <b style="font-size:18px">Sair da conta</b>
+    <div id="loText" style="font-size:14px;color:#b5bac1"></div>
+    <div class="pmB" style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button id="loCancel">Cancelar</button><button id="loGo" class="danger">Sair</button></div>
+  </div>
+</div>
 <div id="inviteModal" class="modal" hidden>
   <div class="card" style="width:min(440px,100%)">
     <div style="display:flex;justify-content:space-between;align-items:center"><b id="invTitle" style="font-size:18px"></b><button class="ib" id="invClose">✕</button></div>
@@ -969,6 +986,8 @@
       <div class="ssub" data-page="transmissao">Transmissão</div>
       <div class="ssub" data-page="sons">Sons</div>
       <div class="sitem" data-page="sistema">⚙️ Sistema</div>
+      <div class="ssep"></div>
+      <div class="sout" id="btnLogout"><svg class="ic" viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5zm6.6 4.6-1.4 1.4 2 2H9v2h8.2l-2 2 1.4 1.4L21 12z"/></svg>Sair</div>
       <div class="sver" id="verInfo"></div>
     </div>
   </div>
@@ -1229,6 +1248,7 @@ $('btnStart').onclick = async () => {
     if (applyBackup(saved)) { toast(`Bem-vindo de volta, ${sm.name}!`); return setTimeout(() => location.reload(), 500); }
     return toast('Não consegui gravar. Feche e abra o Concorde de novo.');
   }
+  if ((await savedAccounts()).some(x => x.me.user === u)) { toast(`A conta @${u} já está salva aqui. Entre com a senha.`); return showLogin(u); }
   // já existe alguém com esse usuário online: pode ser a própria conta, então sugere entrar
   if (typeof Peer !== 'undefined' && await userTaken(u)) {
     toast(`@${u} já existe. Se for você, entre com sua senha.`);
@@ -4266,6 +4286,7 @@ function paintSettings() {
   row('Código de amigo', profile.code, 'Copiar', () => copy(profile.code));
   row('Senha', load('vkey', null) ? 'Criada. Use com @' + profile.user + ' pra entrar em outro PC.' : 'Ainda não tem: crie pra nunca perder a conta.',
     load('vkey', null) ? 'Trocar' : 'Criar senha', () => openPassModal());
+  row('Trocar de conta', 'Sai desta conta pra entrar com outra ou criar uma nova. Esta fica salva (PC e OneDrive).', 'Sair', () => $('btnLogout').click());
   row('Cópia da conta', 'Salva um arquivo com sua conta (amigos, mensagens, cargos). Use antes de formatar ou pra levar pra outro PC.', 'Exportar', exportAccount);
 }
 function showSPage(p) {
@@ -4837,16 +4858,59 @@ window.addEventListener('beforeunload', () => { backupAccount(true); try { peer?
 // ---------- cópia de segurança da conta (Concorde.exe) ----------
 // O navegador pode perder os dados (PC desligado na hora errada, limpeza...). O .exe guarda uma cópia num
 // arquivo próprio, e se a conta sumir ela volta sozinha ao abrir.
-function backupAccount(leaving) {
-  if (!profile || perfil) return; // perfis de teste (?perfil=) não entram
+// Cada conta também fica em Documentos\Concorde\contas\<usuário>.json (OneDrive): formatou o PC, as contas continuam lá.
+function backupAccount(leaving, now) {
+  if (!profile || perfil) return Promise.resolve(); // perfis de teste (?perfil=) não entram
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k === KEY + '-me' || (k.startsWith(KEY + '-') && !k.slice(KEY.length + 1).includes('-'))) data[k] = localStorage.getItem(k);
   }
-  if (!data[KEY + '-me']) return;
-  isExeP.then(exe => exe && fetch('/api/backup', { method: 'POST', headers: { 'X-TelaCall': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: leaving && JSON.stringify(data).length < 60000 }).catch(() => {}));
+  if (!data[KEY + '-me']) return Promise.resolve();
+  const url = '/api/backup?user=' + encodeURIComponent(profile.user || '') + (now ? '&agora=1' : '');
+  return isExeP.then(exe => exe && fetch(url, { method: 'POST', headers: { 'X-TelaCall': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: leaving && JSON.stringify(data).length < 60000 }).catch(() => {}));
 }
+// contas guardadas neste PC / no OneDrive (pra tela de entrar)
+async function savedAccounts() {
+  if (perfil || !(await isExeP)) return [];
+  try {
+    const list = await (await fetch('/api/accounts', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' })).json();
+    const out = [], seen = new Set();
+    for (const a of (Array.isArray(list) ? list : []).sort((a, b) => b.t - a.t)) {
+      try {
+        const d = await (await fetch('/api/backup?user=' + encodeURIComponent(a.user), { headers: { 'X-TelaCall': '1' }, cache: 'no-store' })).json();
+        const me = JSON.parse(d[KEY + '-me']);
+        if (!me?.code || seen.has(me.code)) continue; // mudou de @: fica só a mais nova
+        seen.add(me.code); out.push({ user: a.user, me, data: d });
+      } catch {}
+    }
+    return out;
+  } catch { return []; }
+}
+// ---------- sair da conta ----------
+$('btnLogout').onclick = () => {
+  const has = !!load('vkey', null);
+  $('loText').innerHTML = '';
+  $('loText').append(has
+    ? `Pra entrar de novo é só usar @${profile.user} e a sua senha. Sua conta fica salva neste PC e no OneDrive (Documentos\\Concorde\\contas).`
+    : 'Você ainda não criou uma senha. Crie antes de sair, senão fica difícil entrar de novo em outro PC.');
+  $('loGo').textContent = has ? 'Sair' : 'Criar senha';
+  $('logoutModal').hidden = false;
+};
+$('loCancel').onclick = () => { $('logoutModal').hidden = true; };
+$('loGo').onclick = async () => {
+  if (!load('vkey', null)) { $('logoutModal').hidden = true; return openPassModal(); }
+  $('loGo').disabled = true; $('loGo').textContent = 'Saindo...';
+  try { if (room) leaveCall(); } catch {}
+  await sealVault().catch(() => {});
+  await backupAccount(false, true); // guarda a conta agora (no PC e no OneDrive) antes de apagar daqui
+  if (await isExeP) await fetch('/api/backup', { method: 'DELETE', headers: { 'X-TelaCall': '1' } }).catch(() => {});
+  try { peer?.destroy(); lookupPeer?.destroy(); } catch {}
+  profile = null;
+  for (const k of Object.keys(localStorage)) if (k.startsWith(KEY + '-') && !k.slice(KEY.length + 1).includes('-')) localStorage.removeItem(k);
+  try { sessionStorage.setItem('tcLoggedOut', '1'); } catch {}
+  location.reload();
+};
 setInterval(() => backupAccount(false), 2 * 60000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) backupAccount(false); });
 // pega a cópia guardada pelo Concorde.exe (tenta algumas vezes: logo que o PC liga ele pode demorar a responder)
@@ -4892,6 +4956,25 @@ function showRestoreOption(data) {
     b.onclick = () => { if (applyBackup(data)) location.reload(); else toast('Não consegui gravar. Feche e abra o Concorde de novo.'); };
     box.append(el('div', 'rbT', 'Achamos a sua conta salva neste PC:'), b);
   }
+  // outras contas guardadas neste PC / no OneDrive: clica e entra com a senha
+  savedAccounts().then(list => {
+    const cur = data ? (() => { try { return JSON.parse(data[KEY + '-me']).code; } catch { return ''; } })() : '';
+    list = list.filter(a => a.me.code !== cur);
+    if (!list.length) return;
+    const wrap = el('div'); wrap.id = 'acctList';
+    wrap.appendChild(el('div', 'rbT', 'Contas salvas (neste PC / OneDrive):'));
+    for (const a of list) {
+      const b = el('button', 'acc'); b.appendChild(avatar(a.me.name));
+      const t = el('div'); t.append(el('b', '', a.me.name || a.user), el('span', '', '@' + (a.me.user || a.user))); b.appendChild(t);
+      b.onclick = () => {
+        let vk = null; try { vk = JSON.parse(a.data[KEY + '-vkey']); } catch {}
+        if (!vk) { if (applyBackup(a.data)) location.reload(); return; } // conta antiga sem senha: entra direto
+        showLogin(a.me.user || a.user);
+      };
+      wrap.appendChild(b);
+    }
+    box.insertBefore(wrap, box.firstChild);
+  });
   const imp = el('button', '', '📂 Importar minha conta (arquivo)');
   imp.onclick = () => $('importFile').click();
   box.appendChild(imp);
@@ -4995,9 +5078,10 @@ async function userTaken(u) {
   p.destroy(); return ok;
 }
 async function loginWithPassword(u, pass, friendU) {
-  // 1) cópia deste PC (ou da nuvem) com o mesmo usuário
-  const saved = await fetchBackup();
+  // 1) cópia deste PC (ou do OneDrive) com o mesmo usuário
+  let saved = await fetchBackup();
   let sm = null; try { sm = saved && JSON.parse(saved[KEY + '-me']); } catch {}
+  if (sm?.user !== u) { const a = (await savedAccounts()).find(x => x.me.user === u || x.user === u); if (a) { saved = a.data; sm = a.me; } }
   if (sm?.user === u) {
     let vk = null; try { vk = JSON.parse(saved[KEY + '-vkey']); } catch {}
     const good = vk ? (await makeVKey(pass, unb64(vk.s))).k === vk.k : true;
@@ -5075,6 +5159,8 @@ else restoreAccount().then(ok => {
   if (ok) return location.reload();
   $('setup').hidden = false;
   if ($('restoreBox').hidden) showRestoreOption(null); // sempre dá pra importar de um arquivo
+  let out = false; try { out = sessionStorage.getItem('tcLoggedOut') === '1'; sessionStorage.removeItem('tcLoggedOut'); } catch {}
+  if (out) showLogin(); // acabou de sair: já mostra o "Entrar"
 });
 </script>
 </body>
