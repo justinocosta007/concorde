@@ -1000,7 +1000,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 18;
+const APP_VERSION = 20;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1395,6 +1395,12 @@ function onFriendData(code, conn, m) {
         conn.send(presenceMsg());
       }
     } else if (m.friend && !prefOf(code).blocked) {
+      // conta acabou de ser recuperada: quem já era amigo volta sozinho (por 3 dias)
+      if (Date.now() - (load('restoredAt', 0) || 0) < 3 * 86400000) {
+        requests.set(code, { conn, name, user });
+        addFriend(code, name, user);
+        return;
+      }
       if (!requests.has(code)) toast(`${name} quer ser seu amigo`);
       requests.set(code, { conn, name, user });
     }
@@ -4704,15 +4710,43 @@ $('btnOutMenu').onclick = async e => {
   ]);
 };
 
-window.addEventListener('beforeunload', () => { try { peer?.destroy(); lookupPeer?.destroy(); } catch {} });
+window.addEventListener('beforeunload', () => { backupAccount(true); try { peer?.destroy(); lookupPeer?.destroy(); } catch {} });
+
+// ---------- cópia de segurança da conta (Concorde.exe) ----------
+// O navegador pode perder os dados (PC desligado na hora errada, limpeza...). O .exe guarda uma cópia num
+// arquivo próprio, e se a conta sumir ela volta sozinha ao abrir.
+function backupAccount(leaving) {
+  if (!profile || perfil) return; // perfis de teste (?perfil=) não entram
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k === KEY + '-me' || (k.startsWith(KEY + '-') && !k.slice(KEY.length + 1).includes('-'))) data[k] = localStorage.getItem(k);
+  }
+  if (!data[KEY + '-me']) return;
+  isExeP.then(exe => exe && fetch('/api/backup', { method: 'POST', headers: { 'X-TelaCall': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: leaving && JSON.stringify(data).length < 60000 }).catch(() => {}));
+}
+setInterval(() => backupAccount(false), 2 * 60000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) backupAccount(false); });
+async function restoreAccount() {
+  if (perfil) return false;
+  try {
+    const r = await fetch('/api/backup', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' });
+    if (!r.ok) return false;
+    const data = await r.json();
+    if (!data[KEY + '-me']) return false;
+    for (const [k, v] of Object.entries(data)) if (k.startsWith(KEY + '-') && typeof v === 'string') localStorage.setItem(k, v);
+    localStorage.setItem(KEY + '-restoredAt', JSON.stringify(Date.now()));
+    return true;
+  } catch { return false; }
+}
 
 // liga o app só no fim, quando tudo acima já existe
 if (typeof Peer === 'undefined') {
   // PC ligou e a internet ainda não voltou: tenta de novo sozinho
   document.body.innerHTML = '<div style="height:100%;display:grid;place-items:center;color:#b5bac1;font:16px Noto Sans,Segoe UI,sans-serif;text-align:center">Sem internet...<br>O Concorde tenta de novo sozinho.</div>';
   setTimeout(() => location.reload(), 8000);
-} else if (profile) { boot(); setTimeout(askAutostartOnce, 4000); }
-else $('setup').hidden = false;
+} else if (profile) { boot(); setTimeout(askAutostartOnce, 4000); setTimeout(() => backupAccount(false), 15000); }
+else restoreAccount().then(ok => { if (ok) location.reload(); else $('setup').hidden = false; });
 </script>
 </body>
 </html>
