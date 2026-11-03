@@ -72,6 +72,6 @@ jobs:
           git add index.html version.json concorde.exe concorde-setup.exe
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 0) { Write-Host 'nada mudou'; exit 0 }
-          $v = (Get-Content version.json -Raw)
-          git commit -m "Site: versão nova (build automático) $v"
+          $v = (Get-Content version.json -Raw | ConvertFrom-Json)
+          git commit -m "Site: build automatico (app $($v.version), exe $($v.launcher))"
           git push
