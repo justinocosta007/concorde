@@ -87,6 +87,33 @@
   .leavelive{position:absolute;left:8px;bottom:8px;background:#000a;border:0;color:#fff;font-size:13px;padding:5px 10px;border-radius:6px;opacity:0;transition:opacity .15s;z-index:2}
   .screen:hover .leavelive{opacity:1}
   .leavelive:hover{background:#da373c}
+  /* cartão de link (igual Discord) */
+  .embed{margin-top:6px;max-width:440px;background:#202024;border:1px solid #2a2a2f;border-left:4px solid #3a3a40;border-radius:6px;padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px}
+  .embSite{font-size:12px;color:#b5bac1}
+  .embTitle{font-weight:600;color:#00a8fc;font-size:15px;word-break:break-word}
+  .embTitle:empty{display:none}
+  .embDesc{font-size:14px;color:#dbdee1;white-space:pre-wrap;max-height:110px;overflow:hidden}
+  .embImg{max-width:100%;max-height:300px;border-radius:6px;margin-top:4px;object-fit:cover}
+  .embYt{position:relative;width:400px;max-width:100%;aspect-ratio:16/9;border-radius:6px;overflow:hidden;cursor:pointer;background:#000;margin-top:4px}
+  .embYt img{width:100%;height:100%;object-fit:cover;display:block}
+  .embYt iframe{width:100%;height:100%;border:0;display:block}
+  .embPlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:46px;border-radius:12px;background:#000c;border:0;color:#fff;font-size:22px}
+  .embYt:hover .embPlay{background:#f00}
+  .embedImg{margin-top:6px}
+  .embImgOnly{max-width:min(420px,100%);max-height:320px;border-radius:8px;cursor:zoom-in;display:block}
+  #chatGame{font-size:13px;color:#b5bac1;font-weight:500;margin-left:6px}
+  .hsearch{display:flex;align-items:center;gap:6px;background:#121214;border-radius:6px;padding:0 8px;margin-left:6px;width:200px}
+  .hsearch input{border:0;background:transparent;padding:5px 0;font-size:13px;flex:1;min-width:0}
+  .hsearch .ic{width:16px;height:16px;color:var(--muted)}
+  .pcGame{margin-top:12px;background:#0006;border-radius:8px;padding:8px 10px}
+  .pcGame .pcLbl{margin-top:0}
+  .pgRow{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .pgIc{width:44px;height:44px;border-radius:8px;background:#2a2a2f;display:grid;place-items:center;font-size:24px;flex:none}
+  .pgName{font-weight:700}
+  .pgTime{font-family:Consolas,monospace;color:var(--green);font-size:13px}
+  .pgBtn{display:block;text-align:center;margin-top:8px;background:#2a2a2f;border-radius:6px;padding:6px;color:var(--text);font-size:13px;font-weight:600;text-decoration:none}
+  .pgBtn:hover{background:#34343a}
+  .friend .st.game svg,.dm .st svg{width:14px;height:14px;fill:currentColor;flex:none}
   #appPick .card{width:min(520px,100%);max-height:86vh}
   #appPick h2{margin:0;font-size:20px}
   .apList{overflow:auto;max-height:46vh;display:flex;flex-direction:column;gap:4px;margin-top:4px}
@@ -660,11 +687,13 @@
   <!-- meio -->
   <main>
     <div id="chat">
-      <div class="callhead" id="chatHead"><span id="chatIcon"></span> <span id="chatTitle"></span><span style="flex:1"></span>
+      <div class="callhead" id="chatHead"><span id="chatIcon"></span> <span id="chatTitle"></span><span id="chatGame" hidden></span><span style="flex:1"></span>
+        <button class="ib" id="dmVideo" title="Iniciar chamada de vídeo" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg></button>
         <button class="ib" id="btnPins" title="Mensagens fixadas"><svg class="ic" viewBox="0 0 24 24"><path d="M16 3a1 1 0 0 1 .7 1.7L15.4 6l2.6 5.3 1.3-1.3a1 1 0 1 1 1.4 1.4l-3.3 3.3-1.4-1.4-2.8 2.8L14 20a1 1 0 0 1-1.7.7L8.6 17 4.7 20.9a1 1 0 0 1-1.4-1.4L7.2 15.6 3.3 11.7A1 1 0 0 1 4 10l3.8.8 2.8-2.8-1.4-1.4 3.3-3.3A1 1 0 0 1 16 3z"/></svg></button>
         <button class="ib" id="btnFavs" title="Mensagens favoritas"><svg class="ic" viewBox="0 0 24 24"><path d="M6 2h12a1 1 0 0 1 1 1v19l-7-4.5L5 22V3a1 1 0 0 1 1-1z"/></svg></button>
         <button class="ib" id="dmCall" title="Iniciar chamada de voz" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></button>
         <button class="ib" id="dmProfBtn" title="Mostrar perfil do usuário" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-3 0-9 1.5-9 4.5V21h18v-2.5c0-3-6-4.5-9-4.5z"/></svg></button>
+        <div class="hsearch"><input id="msgFind" placeholder="Buscar" maxlength="60"><svg class="ic" viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg></div>
       </div>
       <div id="msgs"></div>
       <div class="composer">
@@ -792,6 +821,9 @@
     <input id="peName" maxlength="24">
     <div class="lbl">Sobre mim</div>
     <textarea id="peBio" maxlength="190" rows="3" placeholder="Ex: :steam: justinjjcn007 · Twitch: ..."></textarea>
+    <div class="lbl">Pronomes</div>
+    <input id="pePron" maxlength="20" placeholder="Ex: Ele, Ela, Ele/Dele">
+
     <div class="lbl">Fundo do perfil</div>
     <div id="peThemes"></div>
     <div class="lbl">Decoração do avatar</div>
@@ -890,7 +922,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1268,6 +1300,7 @@ function onFriendData(code, conn, m) {
     renderFriends(); renderRooms();
   } else if (m.t === 'status' && o && o.conn === conn) {
     o.room = cleanRoom(m.room);
+    o.game = cleanGame(m.game);
     if (room && o.room?.id === room.id) {
       adoptSince(o.room.since);
       // dois grupos entraram no mesmo canal sem se ver: junta (só o de id menor liga, pra não duplicar)
@@ -1424,6 +1457,7 @@ function personRow(x) {
     st.append(roomOfCode(x.code)?.live?.has(PREFIX + x.code) || (x.code === profile.code && screen && screenKind === 'screen') ? 'Ao vivo' : 'Em voz');
     info.appendChild(st);
   } else if (x.status) info.appendChild(el('div', 'st', x.status));
+  else if (gameOf(x.code)) info.appendChild(gameLine(x.code));
   d.append(avatar(x.name, x.dot, x.code), info, ...x.extra);
   const t = THEMES[channels['p-' + x.code]?.theme]?.bg;
   if (t) { d.classList.add('themed'); d.style.background = `linear-gradient(90deg,#1a1a1e 30%,#1a1a1eb8 62%,#1a1a1e40),${t}`; }
@@ -1485,8 +1519,37 @@ function statusMsg() {
     id: room.id, name: room.name, since: room.since,
     members: [{ id: peer.id, name: profile.name, live: !!screen && screenKind === 'screen' },
               ...[...members.values()].filter(m => m.name).map(m => ({ id: m.id, name: m.name, live: !!m.live }))],
-  } : null };
+  } : null, game: myGame };
 }
+
+// ---------- "Jogando ..." (o Concorde.exe vê qual jogo está aberto) ----------
+let myGame = null; // { name, since, store }
+const cleanGame = g => g && typeof g.name === 'string' && g.name.trim()
+  ? { name: g.name.trim().slice(0, 60), since: Math.min(Number(g.since) || 0, Date.now()), store: String(g.store || '').slice(0, 12) } : null;
+const gameOf = code => code === profile?.code ? myGame : online.get(code)?.theyAdded ? online.get(code).game || null : null;
+const fmtElapsed = since => { const s = Math.max(0, Math.floor((Date.now() - since) / 1000)); const p = n => String(n).padStart(2, '0'); return `${Math.floor(s / 3600)}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`; };
+function gameLine(code) {
+  const st = el('div', 'st game');
+  st.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 6h10a5 5 0 0 1 0 10c-1.5 0-2.4-.8-3.2-1.7L13 13.5h-2l-.8.8C9.4 15.2 8.5 16 7 16A5 5 0 0 1 7 6zm0 3v1.5H5.5v1H7V13h1v-1.5h1.5v-1H8V9zm8.5.5a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8zm2 2a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z"/></svg>';
+  st.append(gameOf(code).name);
+  return st;
+}
+async function pollGame() {
+  try {
+    const r = await fetch('/api/activity', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' });
+    if (!r.ok) return; // site ou .exe antigo: sem "Jogando"
+    const j = await r.json();
+    const g = j.game ? cleanGame({ name: j.game, since: j.since, store: j.store }) : null;
+    if ((g?.name || '') === (myGame?.name || '')) return;
+    myGame = g;
+    sendStatus(); renderSelf();
+    if (view.type === 'text') renderMsgs();
+  } catch {}
+}
+setInterval(pollGame, 15000);
+setTimeout(pollGame, 3000);
+// relógio do "Jogando há 1:25:42" no perfil
+setInterval(() => document.querySelectorAll('[data-gsince]').forEach(e => { e.textContent = fmtElapsed(Number(e.dataset.gsince)); }), 1000);
 function sendStatus() {
   const msg = statusMsg();
   for (const o of online.values()) if (o.theyAdded && o.conn.open) o.conn.send(msg);
@@ -1844,6 +1907,7 @@ function cleanChannel(c) {
     if (!isCode(c.code) || c.id !== 'p-' + c.code) return null;
     const avatar = typeof c.avatar === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c.avatar) && c.avatar.length < 40000 ? c.avatar : '';
     return { ...base, code: c.code, bio: String(c.bio || '').slice(0, 190), theme: THEMES[c.theme] ? c.theme : 'padrao', avatar,
+             pron: String(c.pron || '').trim().slice(0, 20),
              decor: DECORS[c.decor] ? c.decor : '', effect: EFFECTS[c.effect] ? c.effect : '' };
   }
   if (!['text', 'voice', 'cat', 'meta'].includes(c.type)) return null;
@@ -2156,7 +2220,23 @@ function fillProfileCard(card, code) {
   const av = avatar(name, (self || online.get(code)?.theyAdded || presence.has(code)) ? 'on' : '', code); av.classList.add('pcAv');
   const body = el('div', 'pcBody');
   const nm = el('div', 'pcName', name); if (topColor(code)) nm.style.color = topColor(code);
-  body.append(nm, el('div', 'pcUser', u ? '@' + u : '#' + code));
+  body.append(nm, el('div', 'pcUser', (u ? '@' + u : '#' + code) + (p.pron ? ' • ' + p.pron : '')));
+  const g = gameOf(code);
+  if (g) {
+    // quadro "Jogando" igual Discord: nome do jogo, tempo e atalho pra loja
+    const box = el('div', 'pcGame');
+    box.appendChild(el('div', 'pcLbl', 'Jogando'));
+    const row = el('div', 'pgRow');
+    const info = el('div', 'info'); info.appendChild(el('div', 'pgName', g.name));
+    if (g.since) { const t = el('div', 'pgTime'); t.dataset.gsince = g.since; t.textContent = fmtElapsed(g.since); info.appendChild(t); }
+    row.append(el('div', 'pgIc', '🎮'), info);
+    box.appendChild(row);
+    if (g.store === 'steam') {
+      const a = el('a', 'pgBtn', 'Ver na Steam'); a.href = 'https://store.steampowered.com/search/?term=' + encodeURIComponent(g.name);
+      a.target = '_blank'; a.rel = 'noopener noreferrer'; box.appendChild(a);
+    }
+    body.appendChild(box);
+  }
   const r = roomOfCode(code);
   if (r) body.appendChild(el('div', 'pcStatus', '🔊 Em call: ' + r.name));
   if (p.bio) { body.append(el('div', 'pcLbl', 'Sobre mim'), el('div', 'pcBio', p.bio)); }
@@ -2217,7 +2297,7 @@ function paintFxPickers() {
 function openProfileEdit() {
   const p = profOf(profile.code) || {};
   editAvatar = p.avatar || ''; editTheme = p.theme || 'padrao'; editDecor = p.decor || ''; editEffect = p.effect || '';
-  $('peName').value = profile.name; $('peBio').value = p.bio || '';
+  $('peName').value = profile.name; $('peBio').value = p.bio || ''; $('pePron').value = p.pron || '';
   const sw = $('peThemes'); sw.innerHTML = '';
   for (const [k, t] of Object.entries(THEMES)) {
     const s = el('div', 'sw' + (k === editTheme ? ' on' : ''), t.name);
@@ -2261,7 +2341,7 @@ $('peSave').onclick = () => {
     sendStatus();
   }
   const p = profOf(profile.code) || { id: 'p-' + profile.code, type: 'prof', code: profile.code, ts: Date.now() };
-  updateChannel({ ...p }, { bio: $('peBio').value.slice(0, 190), theme: editTheme, avatar: editAvatar, decor: editDecor, effect: editEffect });
+  updateChannel({ ...p }, { bio: $('peBio').value.slice(0, 190), pron: $('pePron').value.trim().slice(0, 20), theme: editTheme, avatar: editAvatar, decor: editDecor, effect: editEffect });
   $('profEdit').hidden = true;
   renderSelf(); renderFriends(); drawn = { ch: null, ids: [] }; renderMsgs();
   if (room) renderMembers();
@@ -2490,7 +2570,7 @@ function openMsgList(e, title, list) {
     it.onclick = () => jumpToMsg(m.ch, m.id);
     box.appendChild(it);
   }
-  if (!list.length) box.appendChild(el('div', 'hint', title.includes('fixadas') ? 'Nenhuma mensagem fixada neste canal ainda. Líderes fixam pelo botão direito na mensagem.' : 'Nenhuma favorita ainda. Botão direito numa mensagem → Favoritar.'));
+  if (!list.length) box.appendChild(el('div', 'hint', title.startsWith('🔎') ? 'Nada encontrado nesta conversa.' : title.includes('fixadas') ? 'Nenhuma mensagem fixada neste canal ainda. Líderes fixam pelo botão direito na mensagem.' : 'Nenhuma favorita ainda. Botão direito numa mensagem → Favoritar.'));
   const r = e.currentTarget.getBoundingClientRect();
   box.hidden = false;
   box.style.top = r.bottom + 6 + 'px';
@@ -2695,7 +2775,9 @@ function closeDm(id) {
   if (view.type === 'text' && view.id === id) showView({ type: 'friends' }); else renderNav();
 }
 function statusLine(code) {
-  return roomOfCode(code) ? { text: '🔊 Em voz', voice: true } : { text: '', voice: false };
+  if (roomOfCode(code)) return { text: '🔊 Em voz', voice: true };
+  const g = gameOf(code);
+  return { text: g ? '🎮 ' + g.name : '', voice: false };
 }
 function renderDms() {
   if (!profile) return;
@@ -2814,7 +2896,7 @@ function renderFriendsHome() {
       && (!q || (f.name + ' ' + (f.user || '')).toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
     for (const f of list) {
       const o = online.get(f.code), r = roomOfCode(f.code);
-      const st = !o?.theyAdded ? 'Offline' : r ? '🔊 Em call: ' + r.name : 'Disponível';
+      const st = !o?.theyAdded ? 'Offline' : r ? '🔊 Em call: ' + r.name : gameOf(f.code) ? '🎮 Jogando ' + gameOf(f.code).name : 'Disponível';
       const btns = [btn('💬', 'Mensagem', () => openDm(f.code))];
       if (o?.theyAdded) btns.push(btn('📞', 'Iniciar chamada', () => callFriend(f.code)));
       btns.push(btn('⋮', 'Mais', e => memberMenu(f.code, e)));
@@ -2842,6 +2924,17 @@ $('dmNew').onclick = e => {
   popMenu(e, list.map(f => ({ label: (isOn(f.code) ? '🟢 ' : '⚫ ') + f.name, fn: () => openDm(f.code) })));
 };
 $('dmCall').onclick = () => { if (isDm(view.id)) callFriend(dmPeer(view.id)); };
+// chamada de vídeo: liga pra pessoa e já abre a câmera
+$('dmVideo').onclick = async () => { if (!isDm(view.id)) return; await callFriend(dmPeer(view.id)); if (room) startCam(); };
+// buscar mensagens na conversa aberta (sem diferença de acento e maiúscula)
+const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+$('msgFind').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $('msgFind').value = ''; $('msgList').hidden = true; return; }
+  if (e.key !== 'Enter') return;
+  const q = fold($('msgFind').value.trim()); if (!q || view.type !== 'text') return;
+  const found = (msgs[view.id] || []).filter(m => fold(textOf(m) + ' ' + (m.file?.name || '') + ' ' + nameOfCode(m.from)).includes(q)).reverse().slice(0, 50);
+  openMsgList({ stopPropagation() {}, currentTarget: $('msgFind') }, `🔎 ${found.length} resultado${found.length === 1 ? '' : 's'} pra "${$('msgFind').value.trim()}"`, found);
+});
 $('dmProfBtn').onclick = () => { dmProfShown = !dmProfShown; save('dmProfShown', dmProfShown); renderDms(); };
 $('voiceBox').onclick = e => { if (!e.target.closest('button')) showView({ type: 'call' }); };
 
@@ -2875,7 +2968,10 @@ function renderMsgs(forceBottom) {
   if (dm) icon.appendChild(avatar(otherName, isOn(other) ? 'on' : '', other));
   else icon.appendChild(el('span', '', '#')).style.cssText = 'color:var(--muted);font-size:22px';
   $('chatTitle').textContent = dm ? otherName : ch?.name || '';
+  const hg = $('chatGame'), g = dm && gameOf(other);
+  hg.hidden = !g; hg.textContent = g ? '🎮 ' + g.name : '';
   $('dmCall').hidden = !dm || !online.get(other)?.theyAdded;
+  $('dmVideo').hidden = $('dmCall').hidden;
   $('dmProfBtn').hidden = !dm;
   $('dmProfBtn').style.color = dm && dmProfShown ? 'var(--text)' : '';
   $('msgInput').placeholder = dm ? `Conversar em @${otherName}` : `Conversar em #${ch?.name || ''}`;
@@ -2936,6 +3032,7 @@ function msgEl(m, prev) {
     body.appendChild(text);
   }
   if (m.file) { const att = el('div', 'att'); att.dataset.fid = m.file.id; body.appendChild(att); fillAttachment(m, att); }
+  const emb = !m.file && embedFor(txt); if (emb) body.appendChild(emb);
   const rx = reactsEl(m); if (rx) body.appendChild(rx);
   row.appendChild(body);
   // barrinha que aparece ao passar o mouse: reagir, responder, mais opções
@@ -2949,6 +3046,66 @@ function msgEl(m, prev) {
   row.oncontextmenu = e => { if (!e.target.closest('.av,.mn,a')) msgMenu(m, e); };
   return row;
 }
+// ---------- prévia de links (cartão igual Discord) e vídeo do YouTube tocando no chat ----------
+const ytId = u => (u.match(/(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([\w-]{11})/) || [])[1];
+const isExeP = fetch('/api/update', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' }).then(r => r.ok).catch(() => false);
+const previews = new Map(); // url -> Promise do cartão (o Concorde.exe busca o título/imagem do site)
+function getPreview(url) {
+  if (!previews.has(url)) previews.set(url, isExeP.then(exe => exe
+    ? fetch('/api/preview?url=' + encodeURIComponent(url), { headers: { 'X-TelaCall': '1' } }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+    : {}));
+  return previews.get(url);
+}
+const keepBottom = h => { const b = $('msgs'); if (b.scrollHeight - b.scrollTop - b.clientHeight < h + 160) b.scrollTop = b.scrollHeight; };
+function embedFor(txt) {
+  const url = ((txt || '').match(/https?:\/\/[^\s<>"]+/) || [])[0]?.replace(/[).,!?:;]+$/, '');
+  if (!url) return null;
+  const box = el('div', 'embed');
+  const yt = ytId(url);
+  if (/\.(png|jpe?g|gif|webp)(\?\S*)?$/i.test(url) && !yt) {
+    const img = document.createElement('img'); img.className = 'embImgOnly'; img.src = url; img.alt = '';
+    img.onerror = () => box.remove(); img.onload = () => keepBottom(img.height);
+    img.onclick = () => { $('viewer').firstChild.src = url; $('viewer').hidden = false; };
+    box.className = 'embedImg'; box.appendChild(img);
+    return box;
+  }
+  const site = el('div', 'embSite'), title = el('a', 'embTitle'), desc = el('div', 'embDesc');
+  title.href = url; title.target = '_blank'; title.rel = 'noopener noreferrer';
+  box.append(site, title, desc);
+  if (yt) {
+    // YouTube: miniatura com ▶; clicou, toca ali mesmo
+    box.style.borderLeftColor = '#ff0000';
+    site.textContent = 'YouTube'; title.textContent = url;
+    const player = el('div', 'embYt');
+    const thumb = document.createElement('img'); thumb.src = `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`; thumb.alt = '';
+    thumb.onload = () => keepBottom(thumb.height);
+    const play = el('button', 'embPlay', '▶'); play.title = 'Assistir aqui';
+    player.onclick = () => {
+      const f = document.createElement('iframe');
+      f.src = `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1`;
+      f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen = true;
+      player.replaceChildren(f); player.onclick = null;
+    };
+    player.append(thumb, play);
+    box.appendChild(player);
+  }
+  getPreview(url).then(p => {
+    if (!p || (!p.title && !p.desc && !p.image)) { if (!yt) box.remove(); return; }
+    box.hidden = false;
+    if (p.site) site.textContent = p.site;
+    if (p.title) title.textContent = p.title; else if (!yt) title.remove();
+    if (p.desc) desc.textContent = p.desc; else desc.remove();
+    if (p.color && /^#[0-9a-f]{3,8}$/i.test(p.color) && !yt) box.style.borderLeftColor = p.color;
+    if (p.image && !yt && /^https:\/\//.test(p.image)) {
+      const img = document.createElement('img'); img.className = 'embImg'; img.src = p.image; img.alt = '';
+      img.onerror = () => img.remove(); img.onload = () => keepBottom(img.height);
+      box.appendChild(img);
+    }
+  });
+  if (!yt) box.hidden = true; // só aparece se o site tiver cartão
+  return box;
+}
+
 const fmtSize = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1024 / 1024).toFixed(1) + ' MB';
 const fmtDur = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 async function fillAttachment(m, att) {
