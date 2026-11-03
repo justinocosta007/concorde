@@ -1064,7 +1064,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -4510,7 +4510,7 @@ function pickAudioApp(apps) {
     const wrap = el('div', 'modal'); wrap.id = 'appPick';
     const card = el('div', 'card');
     card.append(el('h2', '', '🔊 De onde vem o som da live?'),
-      el('p', '', 'Escolha o programa do filme ou do jogo. Vai só o som dele — as vozes da call continuam só na call, sem sair duplicadas.'));
+      el('p', '', 'Escolha o programa do filme ou do jogo, ou "Som do PC inteiro". As vozes (da call e do Discord) nunca vão na live: continuam só na call, sem sair duplicadas.'));
     const find = document.createElement('input'); find.placeholder = 'Buscar programa...';
     const list = el('div', 'apList');
     const done = v => { wrap.remove(); resolve(v); };
@@ -4530,8 +4530,8 @@ function pickAudioApp(apps) {
     find.oninput = paint;
     const btns = el('div', 'apBtns');
     const none = el('button', '', '🔇 Sem som'); none.onclick = () => done(null);
-    const sys = el('button', '', 'Som do PC inteiro'); sys.title = 'Leva tudo que toca no seu PC, inclusive as vozes da call';
-    sys.onclick = () => done('system');
+    const sys = el('button', '', '🔊 Som do PC inteiro'); sys.title = 'Tudo que toca no seu PC (filme, jogo, música), menos o Discord e as vozes da call — elas continuam só na call';
+    sys.onclick = () => { save('lastAudioApp', ''); done({ pid: 0, name: 'PC inteiro' }); };
     const cancel = el('button', '', 'Cancelar'); cancel.onclick = () => done(undefined);
     btns.append(none, sys, cancel);
     card.append(find, list, btns);
@@ -4573,8 +4573,11 @@ async function beginShare(audioSrc) {
     screen = got;
   } catch { toast('Compartilhamento cancelado.'); return; }
   screenKind = 'screen';
-  if (audioSrc && audioSrc.pid) {
-    try { screen.addTrack(await appAudioTrack(audioSrc.pid, audioSrc.name)); toast(`🔊 Som da live: só do ${audioSrc.name} (as vozes ficam só na call)`); }
+  if (audioSrc && typeof audioSrc.pid === 'number') {
+    try {
+      screen.addTrack(await appAudioTrack(audioSrc.pid, audioSrc.name));
+      toast(audioSrc.pid ? `🔊 Som da live: só do ${audioSrc.name} (as vozes ficam só na call)` : '🔊 Som da live: PC inteiro, sem o Discord e sem as vozes da call');
+    }
     catch { toast('Não deu pra pegar o som desse programa. A live vai sem som.'); }
   }
   screen.getAudioTracks().forEach(t => { t.enabled = $('shareAudio').checked; t.contentHint = 'music'; });
