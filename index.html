@@ -1000,7 +1000,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1211,7 +1211,7 @@ async function openInvite() {
   if (siteUrl) {
     const link = `${siteUrl}?convite=${profile.code}`;
     const text = `Entra no ${channels.server?.name || 'servidor'} no Concorde!\n` +
-      `Pelo navegador: ${link}\nOu baixe o programa: ${siteUrl}concorde.exe e me adicione: @${profile.user}`;
+      `Pelo navegador: ${link}\nOu instale o programa: ${siteUrl}concorde-setup.exe e me adicione: @${profile.user}`;
     box.append(el('div', 'lbl', 'Envie um link de convite para um amigo'));
     const row = el('div', 'invRow'); const inp = document.createElement('input'); inp.value = link; inp.readOnly = true;
     const b = el('button', 'primary', 'Copiar'); b.onclick = () => { copy(link); b.textContent = 'Copiado'; b.classList.replace('primary', 'green'); };
@@ -1224,7 +1224,7 @@ async function openInvite() {
     const row = el('div', 'invRow'); const inp = document.createElement('input'); inp.value = '@' + profile.user; inp.readOnly = true;
     const b = el('button', 'primary', 'Copiar'); b.onclick = () => copy('@' + profile.user);
     row.append(inp, b); box.appendChild(row);
-    box.appendChild(el('div', 'tip', `O link de convite aparece aqui quando o site do Concorde (GitHub) estiver no ar. Por enquanto: mande o Concorde.exe e peça pra ele te adicionar por @${profile.user} (ou pelo código ${profile.code}).`));
+    box.appendChild(el('div', 'tip', `O link de convite aparece aqui quando o site do Concorde (GitHub) estiver no ar. Por enquanto: mande o Concorde Setup.exe e peça pra ele te adicionar por @${profile.user} (ou pelo código ${profile.code}).`));
   }
   $('inviteModal').hidden = false;
 }
