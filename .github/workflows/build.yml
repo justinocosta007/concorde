@@ -1,0 +1,77 @@
+# Build automático do Concorde: compila o Concorde.exe a partir do código deste repositório,
+# assina pelo SignPath (quando a conta do SignPath estiver configurada nas variáveis do repositório)
+# e publica no site (GitHub Pages): index.html, version.json, concorde.exe e concorde-setup.exe.
+name: Compilar e publicar
+
+on:
+  push:
+    branches: [main]
+    paths: ['TelaCall.html', 'fonte/**', '.github/workflows/build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # publicar os arquivos do site neste repositório
+  actions: read     # o SignPath baixa o .exe enviado pelo upload-artifact
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 180   # a assinatura espera alguém aprovar no SignPath
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar o Concorde.exe
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File fonte\build.ps1 -Stage exe
+
+      - name: Enviar o .exe para assinar
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: concorde-sem-assinatura
+          path: Concorde.exe
+          if-no-files-found: error
+
+      - name: Assinar (SignPath)
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'concorde' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 10200
+          output-artifact-directory: assinado
+
+      - name: Usar o .exe assinado
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        shell: powershell
+        run: |
+          Copy-Item assinado\Concorde.exe Concorde.exe -Force
+          $s = Get-AuthenticodeSignature Concorde.exe
+          Write-Host "Assinatura: $($s.Status) - $($s.SignerCertificate.Subject)"
+          if ($s.Status -ne 'Valid') { throw 'o .exe voltou sem assinatura válida' }
+
+      - name: Montar o site
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File fonte\build.ps1 -Stage site
+
+      - name: Publicar
+        shell: powershell
+        run: |
+          Copy-Item site\index.html, site\version.json, site\concorde.exe, site\concorde-setup.exe . -Force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json concorde.exe concorde-setup.exe
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'nada mudou'; exit 0 }
+          $v = (Get-Content version.json -Raw)
+          git commit -m "Site: versão nova (build automático) $v"
+          git push
