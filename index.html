@@ -847,9 +847,9 @@
       <div id="screens"><div id="empty">Ninguém está compartilhando a tela.</div></div>
       <div class="bar">
         <select id="quality" title="Qualidade da tela">
-          <option value="auto" selected>✨ Automático (melhor possível)</option>
           <option value="1440p60">Quad HD 1440p 60fps</option>
-          <option value="1080p60">Full HD 1080p 60fps</option>
+          <option value="1440p30">Quad HD 1440p 30fps</option>
+          <option value="1080p60" selected>Full HD 1080p 60fps</option>
           <option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option>
           <option value="720p30">720p 30fps (internet fraca)</option>
@@ -1029,8 +1029,7 @@
         <h2>Transmissão</h2>
         <div class="lbl">Qualidade padrão da tela</div>
         <div class="selw"><span>🖥️</span><select id="sQuality">
-          <option value="auto">✨ Automático (melhor possível)</option>
-          <option value="1440p60">Quad HD 1440p 60fps (internet boa)</option>
+          <option value="1440p60">Quad HD 1440p 60fps (internet boa)</option><option value="1440p30">Quad HD 1440p 30fps</option>
           <option value="1080p60">Full HD 1080p 60fps</option><option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option><option value="720p30">720p 30fps (internet fraca)</option></select></div>
         <div class="tog"><div><b>Mostrar prévias da transmissão</b><div class="tip">Permite que os outros vejam uma prévia (fotinho atualizada) da sua transmissão antes de entrarem nela.</div></div><input type="checkbox" class="tsw" id="sLivePrev"></div>
@@ -1069,7 +1068,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 27;
+const APP_VERSION = 28;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1078,20 +1077,16 @@ const ICE = { iceServers: [
   { urls: 'stun:global.stun.twilio.com:3478' },
 ]};
 const QUALITY = {
-  '1440p60': { w: 2560, h: 1440, fps: 60, kbps: 18000 }, // Quad HD: precisa de uns 20 Mbps de upload
-  '1080p60': { w: 1920, h: 1080, fps: 60, kbps: 10000 },
+  // teto por amigo assistindo. Era 18/10 Mbps: imagem linda mas engasgava quando o upload não dava conta
+  '1440p60': { w: 2560, h: 1440, fps: 60, kbps: 14000 }, // Quad HD: uns 15 Mbps de upload por amigo
+  '1440p30': { w: 2560, h: 1440, fps: 30, kbps: 9000 },
+  '1080p60': { w: 1920, h: 1080, fps: 60, kbps: 8000 },
   '1080p30': { w: 1920, h: 1080, fps: 30, kbps: 6000 },
   '720p60':  { w: 1280, h: 720,  fps: 60, kbps: 4500 },
   '720p30':  { w: 1280, h: 720,  fps: 30, kbps: 2500 },
 };
-// "Automático": pega a maior qualidade que a tela tem (Quad HD numa tela 1440p, Full HD numa 1080p), sempre 60fps.
-// Se a internet ou o PC apertarem, o próprio WebRTC baixa a resolução sozinho e sobe de novo quando melhora.
-function curQ() {
-  const v = $('quality').value;
-  if (v !== 'auto') return QUALITY[v];
-  const h = Math.round(window.screen.height * (devicePixelRatio || 1)); // "screen" sozinho é a transmissão
-  return h >= 1400 ? QUALITY['1440p60'] : QUALITY['1080p60'];
-}
+// qualidade escolhida por quem transmite (se a internet apertar, o WebRTC baixa um pouco a nitidez e segura o fps)
+const curQ = () => QUALITY[$('quality').value] || QUALITY['1080p60'];
 
 // Opus no máximo: voz 128kbps mono, som da transmissão 320kbps estéreo
 const VOICE_KBPS = 128, STREAM_KBPS = 320;
@@ -1419,7 +1414,7 @@ function startPeer() {
       m.screenIn = call;
       m.screenKind = call.metadata.kind === 'cam' ? 'cam' : 'screen';
       if (m.screenKind === 'screen') { m.live = true; m.watch = true; } // versão antiga manda direto: já conta como assistindo
-      call.on('stream', s => showScreen(call.peer, s));
+      call.on('stream', s => { smoothScreen(call); showScreen(call.peer, s); });
       call.on('close', () => { if (m.screenIn === call) { m.screenIn = null; hideScreen(call.peer); } });
     } else {
       call.answer(mic, { sdpTransform: voiceSdp });
@@ -4418,19 +4413,23 @@ function tune(call) {
     }
   } catch {}
 }
-// Full HD: se a internet apertar, cai o fps mas segura a resolução
-// 60fps: trava o fps (se apertar, cai um pouco a resolução); 30fps: segura a nitidez
+// dica pro codificador: 60fps = movimento (jogo), 30fps = detalhe (texto, filme parado)
 const hintFor = q => q.fps >= 60 ? 'motion' : 'detail';
-// Pede a captura acima de 60: o capturador do Windows espera o monitor trocar de quadro, e pedindo 60
-// ele perde alguns (monitor 120Hz dava 57). Quem trava o envio em 60 é o codificador (maxFramerate).
-const capRate = q => q.fps >= 60 ? { ideal: 120, max: 120 } : { ideal: q.fps, max: q.fps };
+// Captura travada em 60: pedindo 120 num monitor de 144Hz a captura pulava quadros de forma desigual
+// (144 -> 120 -> 60) e a live "engasgava" mesmo com fps alto. 60 certinho = quadros no mesmo ritmo.
+const capRate = q => ({ ideal: q.fps, max: q.fps });
+// quem assiste: segura ~150ms de vídeo antes de mostrar. Os pacotes chegam pela internet em ritmo irregular;
+// com essa folga a imagem sai lisa (o atraso é pequeno e o som da live vem junto, sincronizado)
+function smoothScreen(call) {
+  try { for (const r of call.peerConnection.getReceivers()) if ('jitterBufferTarget' in r) r.jitterBufferTarget = 150; } catch {}
+}
 function lockFramerate(call) {
   const q = curQ();
   try {
     for (const s of call.peerConnection.getSenders()) {
       if (s.track?.kind !== 'video') continue;
       const prm = s.getParameters();
-      prm.degradationPreference = q.fps >= 60 ? 'maintain-framerate' : 'maintain-resolution';
+      prm.degradationPreference = 'maintain-framerate'; // lisinho primeiro: se apertar, cai um pouco a nitidez, não o fps
       s.setParameters(prm).catch(() => {});
     }
   } catch {}
@@ -4670,9 +4669,8 @@ function stopShare() {
 }
 $('btnShare').onclick = () => screen ? stopShare() : startShare();
 
-{ // quem já tinha escolhido uma qualidade passa uma vez pro Automático (novo padrão)
-  if (!load('qAuto', false)) { save('quality', 'auto'); save('qAuto', true); }
-  const q = load('quality', 'auto'); if (q === 'auto' || QUALITY[q]) $('quality').value = q; }
+{ // cada um escolhe a qualidade (não tem mais "Automático": quem estava nele vai pro Full HD 60)
+  const q = load('quality', '1080p60'); $('quality').value = QUALITY[q] ? q : '1080p60'; }
 $('shareAudio').checked = load('shareAudio', true);
 $('shareAudio').onchange = () => {
   const on = $('shareAudio').checked;
@@ -4904,7 +4902,7 @@ $('vbShare').onclick = () => screen && screenKind === 'screen' ? stopShare() : s
 $('vbCam').onclick = () => screen && screenKind === 'cam' ? stopShare() : startCam();
 $('vbSound').onclick = () => { $('shareAudio').checked = !$('shareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
 $('vbQual').onclick = e => popMenu(e, () => Object.entries({
-  auto: '✨ Automático (melhor possível)', '1440p60': 'Quad HD 1440p 60fps', '1080p60': 'Full HD 1080p 60fps', '1080p30': 'Full HD 1080p 30fps', '720p60': '720p 60fps', '720p30': '720p 30fps (internet fraca)',
+  '1440p60': 'Quad HD 1440p 60fps', '1440p30': 'Quad HD 1440p 30fps', '1080p60': 'Full HD 1080p 60fps', '1080p30': 'Full HD 1080p 30fps', '720p60': '720p 60fps', '720p30': '720p 30fps (internet fraca)',
 }).map(([k, label]) => ({ label, check: $('quality').value === k, keep: true, fn: () => { $('quality').value = k; $('quality').onchange(); } })));
 $('btnMicMenu').onclick = async e => {
   e.stopPropagation();
