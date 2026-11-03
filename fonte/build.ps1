@@ -7,7 +7,8 @@ $src = $PSScriptRoot
 $root = Split-Path $src
 Add-Type -AssemblyName System.Drawing
 
-# ícone: quadrado azul arredondado com um monitor branco
+# ícone: o avião Concorde visto de cima (branco), num quadrado azul arredondado
+# o mesmo desenho está no TelaCall.html (<symbol id="concordeJet">), numa caixa de 100x100 apontando pra cima
 $size = 256
 $bmp = New-Object System.Drawing.Bitmap $size, $size
 $g = [System.Drawing.Graphics]::FromImage($bmp)
@@ -19,14 +20,29 @@ function RoundRect($x, $y, $w, $h, $r) {
   $p.AddArc($x + $w - $r, $y + $h - $r, $r, $r, 0, 90); $p.AddArc($x, $y + $h - $r, $r, $r, 90, 90)
   $p.CloseFigure(); return $p
 }
-$g.FillPath((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(88, 101, 242))), (RoundRect 8 8 240 240 80))
-$white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
-$g.FillPath($white, (RoundRect 48 64 160 108 24))
-$g.FillPath((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(88, 101, 242))), (RoundRect 62 78 132 80 12))
-$g.FillRectangle($white, 116, 172, 24, 22)
-$g.FillPath($white, (RoundRect 84 190 88 18 12))
-# "onda" de voz dentro da tela
-$g.FillEllipse($white, 108, 98, 40, 40)
+$grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(0, 0)), ([System.Drawing.PointF]::new($size, $size)),
+  ([System.Drawing.Color]::FromArgb(108, 121, 255)), ([System.Drawing.Color]::FromArgb(64, 72, 210))
+$g.FillPath($grad, (RoundRect 8 8 240 240 80))
+# asa delta "ogiva", bico comprido e os motores (dois de cada lado) aparecendo atrás da asa
+$jet = @(
+  @('L', 51.8, 9), @('L', 52.6, 20), @('L', 52.8, 32),
+  @('C', 53.6, 44, 55.5, 52, 58.5, 60), @('C', 63, 68, 69.5, 76, 71, 84),
+  @('L', 71.5, 89), @('L', 61.5, 89), @('L', 61.5, 94), @('L', 54.5, 94), @('L', 54.5, 89), @('L', 53, 89),
+  @('L', 52, 99), @('L', 48, 99), @('L', 47, 89),
+  @('L', 45.5, 89), @('L', 45.5, 94), @('L', 38.5, 94), @('L', 38.5, 89), @('L', 28.5, 89), @('L', 29, 84),
+  @('C', 30.5, 76, 37, 68, 41.5, 60), @('C', 44.5, 52, 46.4, 44, 47.2, 32),
+  @('L', 47.4, 20), @('L', 48.2, 9), @('L', 50, 2))
+$plane = New-Object System.Drawing.Drawing2D.GraphicsPath
+$cx = 50; $cy = 2
+foreach ($s in $jet) {
+  if ($s[0] -eq 'L') { $plane.AddLine($cx, $cy, $s[1], $s[2]); $cx = $s[1]; $cy = $s[2] }
+  else { $plane.AddBezier($cx, $cy, $s[1], $s[2], $s[3], $s[4], $s[5], $s[6]); $cx = $s[5]; $cy = $s[6] }
+}
+$plane.CloseFigure()
+$m = New-Object System.Drawing.Drawing2D.Matrix
+$m.Translate(128, 128); $m.Rotate(45); $m.Scale(2.3, 2.3); $m.Translate(-50, -52)   # voando pra cima e pra direita
+$plane.Transform($m)
+$g.FillPath((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)), $plane)
 $g.Dispose()
 $ms = New-Object System.IO.MemoryStream
 $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
