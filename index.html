@@ -922,7 +922,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -956,7 +956,23 @@ function opusSdp(sdp, kbps, stereo) {
   const re = new RegExp(`a=fmtp:${m[1]} [^\\r\\n]*`);
   return re.test(sdp) ? sdp.replace(re, `a=fmtp:${m[1]} ${params}`) : sdp.replace(m[0], `${m[0]}\r\na=fmtp:${m[1]} ${params}`);
 }
-const voiceSdp = sdp => opusSdp(sdp, VOICE_KBPS, false);
+// RED (redundância): cada pedacinho de voz vai junto com o anterior, então pacote perdido na internet
+// não vira "picote" nem voz robotizada. Põe o "red" na frente da lista de codecs de áudio.
+function preferRed(sdp) {
+  const lines = sdp.split('\r\n');
+  const mi = lines.findIndex(l => l.startsWith('m=audio'));
+  if (mi < 0) return sdp;
+  const red = lines.slice(mi).find(l => /^a=rtpmap:\d+ red\/48000\/2/i.test(l));
+  if (!red) return sdp;
+  const pt = red.match(/^a=rtpmap:(\d+)/)[1];
+  const parts = lines[mi].split(' ');
+  const pts = parts.slice(3).filter(p => p !== pt);
+  lines[mi] = [...parts.slice(0, 3), pt, ...pts].join(' ');
+  return lines.join('\r\n');
+}
+const voiceSdp = sdp => preferRed(opusSdp(sdp, VOICE_KBPS, false));
+// tudo de áudio em 48 kHz (o mesmo do Opus): sem conversão de taxa no meio do caminho
+const newCtx = () => { try { return new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' }); } catch { return new AudioContext(); } };
 // vídeo da transmissão: prefere H.264 (codificado pela placa de vídeo, pesa menos e segura o fps)
 // e já começa com bitrate alto, com um piso, em vez de ir subindo devagar
 function videoSdp(sdp, kbps) {
@@ -1071,7 +1087,7 @@ $('btnStart').onclick = () => {
   if (!u) return toast('Usuário: 3 a 20 letras minúsculas ou números, sem espaço.');
   profile = { code: randomCode(), name: cleanName(n), user: u };
   save('me', profile);
-  actx = new AudioContext();
+  actx = newCtx();
   boot();
   setTimeout(askAutostartOnce, 4000);
 };
@@ -3235,7 +3251,7 @@ function onNewMsg(m) {
 function chime(notes, vol = 0.22) {
   vol *= settings.sndVol / 100;
   try {
-    actx = actx || new AudioContext(); actx.resume();
+    actx = actx || newCtx(); actx.resume();
     if (settings.outId && actx.setSinkId && actx.sinkId !== settings.outId) actx.setSinkId(settings.outId).catch(() => {});
     const t0 = actx.currentTime + 0.01, out = actx.createGain();
     out.gain.value = vol; out.connect(actx.destination);
@@ -3261,7 +3277,7 @@ const SND = {
 function blip() {
   if (!settings.sndMsg || !settings.sndVol) return;
   try {
-    actx = actx || new AudioContext(); actx.resume();
+    actx = actx || newCtx(); actx.resume();
     const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
     o.frequency.setValueAtTime(990, t); o.frequency.setValueAtTime(1320, t + 0.07);
     g.gain.setValueAtTime(0.08 * settings.sndVol / 100, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
@@ -3313,7 +3329,7 @@ function stopRinging() {
 }
 function ringTone() {
   try {
-    actx = actx || new AudioContext(); actx.resume();
+    actx = actx || newCtx(); actx.resume();
     const t = actx.currentTime;
     [[0, 880], [0.25, 660]].forEach(([d, f]) => {
       const o = actx.createOscillator(), g = actx.createGain();
@@ -3334,7 +3350,7 @@ $('btnDecline').onclick = () => {
 };
 
 async function enterCall(r) {
-  actx = actx || new AudioContext(); actx.resume();
+  actx = actx || newCtx(); actx.resume();
   if (!mic) mic = await getMic();
   room = { ...r, since: Date.now() };
   watchSpeaking(me, mic);
@@ -3373,6 +3389,7 @@ function micConstraints(withDevice) {
     deviceId: withDevice && settings.micId ? { exact: settings.micId } : undefined,
     echoCancellation: v.ec, noiseSuppression: v.ns, autoGainControl: v.agc,
     channelCount: 1, sampleRate: 48000, sampleSize: 16, latency: 0.01,
+    voiceIsolation: settings.inProf === 'iso', // isolamento de voz do próprio navegador (onde existir)
   };
 }
 async function getMicRaw() {
@@ -3411,7 +3428,7 @@ const gateCfg = () => ({ gain: settings.micVol / 100, gate: settings.inProf !== 
 const sendGateCfg = () => gateNode?.port.postMessage(gateCfg());
 async function processMic(raw) {
   try {
-    actx = actx || new AudioContext();
+    actx = actx || newCtx();
     gateReady = gateReady || actx.audioWorklet.addModule(URL.createObjectURL(new Blob([GATE_JS], { type: 'text/javascript' })));
     await gateReady;
     const node = new AudioWorkletNode(actx, 'tc-gate', { outputChannelCount: [1] });
@@ -3436,7 +3453,7 @@ async function getMic() {
     return s;
   } catch {
     toast('Microfone não liberado — você vai só ouvir/assistir.');
-    actx = actx || new AudioContext();
+    actx = actx || newCtx();
     return actx.createMediaStreamDestination().stream; // stream silencioso
   }
 }
@@ -3541,7 +3558,12 @@ function setAudioBitrate(call, kbps) {
       const prm = s.getParameters();
       if (!prm.encodings || !prm.encodings.length) prm.encodings = [{}];
       prm.encodings[0].maxBitrate = kbps * 1000;
-      s.setParameters(prm).catch(() => {});
+      // voz passa na frente quando a internet aperta
+      prm.encodings[0].priority = prm.encodings[0].networkPriority = 'high';
+      s.setParameters(prm).catch(() => {
+        delete prm.encodings[0].priority; delete prm.encodings[0].networkPriority;
+        s.setParameters(prm).catch(() => {});
+      });
     }
   } catch {}
 }
@@ -3560,7 +3582,7 @@ function attachAudio(call) {
 
 function watchSpeaking(target, stream) {
   try {
-    actx = actx || new AudioContext();
+    actx = actx || newCtx();
     const an = actx.createAnalyser(); an.fftSize = 512;
     actx.createMediaStreamSource(stream).connect(an);
     target.analyser = an;
@@ -3635,7 +3657,7 @@ async function startMeter() {
   stopMeter();
   // fora da call usa um microfone temporário só pro medidor (já com volume e sensibilidade aplicados)
   if (!mic) { try { testMic = await processMic(await getMicRaw()); } catch { return; } }
-  actx = actx || new AudioContext(); actx.resume();
+  actx = actx || newCtx(); actx.resume();
   meterTimer = setInterval(() => {
     const lit = dbToBars(gateInfo.db), thrBar = dbToBars(gateInfo.thr);
     $('meter').querySelectorAll('i').forEach((b, i) => b.classList.toggle('lit', i < lit));
