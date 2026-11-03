@@ -837,7 +837,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -3595,6 +3595,9 @@ function tune(call) {
 // Full HD: se a internet apertar, cai o fps mas segura a resolução
 // 60fps: trava o fps (se apertar, cai um pouco a resolução); 30fps: segura a nitidez
 const hintFor = q => q.fps >= 60 ? 'motion' : 'detail';
+// Pede a captura acima de 60: o capturador do Windows espera o monitor trocar de quadro, e pedindo 60
+// ele perde alguns (monitor 120Hz dava 57). Quem trava o envio em 60 é o codificador (maxFramerate).
+const capRate = q => q.fps >= 60 ? { ideal: 120, max: 120 } : { ideal: q.fps, max: q.fps };
 function lockFramerate(call) {
   const q = QUALITY[$('quality').value];
   try {
@@ -3641,7 +3644,7 @@ async function startShare() {
   const old = screen;
   try {
     const got = await navigator.mediaDevices.getDisplayMedia({
-      video: { width: { ideal: q.w }, height: { ideal: q.h }, frameRate: { ideal: q.fps, max: q.fps } },
+      video: { width: { ideal: q.w }, height: { ideal: q.h }, frameRate: capRate(q) },
       // som do PC cru (sem filtros de voz), em estéreo, e sem as vozes da própria call (evita eco)
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false,
                channelCount: 2, sampleRate: 48000, suppressLocalAudioPlayback: false, restrictOwnAudio: true },
@@ -3692,7 +3695,7 @@ $('quality').onchange = () => {
   const q = QUALITY[$('quality').value];
   const vt = screen.getVideoTracks()[0];
   vt.contentHint = hintFor(q);
-  vt.applyConstraints({ width: { ideal: q.w }, height: { ideal: q.h }, frameRate: { ideal: q.fps, max: q.fps } }).catch(() => {});
+  vt.applyConstraints({ width: { ideal: q.w }, height: { ideal: q.h }, frameRate: capRate(q) }).catch(() => {});
   for (const m of members.values()) if (m.screenOut) tune(m.screenOut);
   toast('Qualidade alterada.');
 };
