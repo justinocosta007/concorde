@@ -1054,7 +1054,7 @@
         <div id="autoBox" hidden>
           <div class="tog"><div><b>Abrir junto com o Windows</b><div class="tip">Abre minimizado quando o PC liga: você fica online e recebe as mensagens sem precisar abrir.</div></div><input type="checkbox" class="tsw" id="optAuto"></div>
         </div>
-        <div class="tip" id="sysInfo"></div>
+        <div class="tog"><div><b>Atualização</b><div class="tip" id="sysInfo"></div></div><button id="btnCheckUpd" style="white-space:nowrap;flex-shrink:0">🔄 Buscar atualização</button></div>
       </section>
     </div>
   </div>
@@ -1064,7 +1064,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1116,7 +1116,8 @@ const voiceSdp = sdp => preferRed(opusSdp(sdp, VOICE_KBPS, false));
 // tudo de áudio em 48 kHz (o mesmo do Opus): sem conversão de taxa no meio do caminho
 const newCtx = () => { try { return new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' }); } catch { return new AudioContext(); } };
 // vídeo da transmissão: prefere H.264 (codificado pela placa de vídeo, pesa menos e segura o fps)
-// e já começa com bitrate alto, com um piso, em vez de ir subindo devagar
+// e já começa na metade do bitrate, em vez de ir subindo devagar. Sem piso: com piso, quando o upload
+// não aguentava (vários amigos assistindo), o envio entupia e o fps despencava em vez de baixar a nitidez.
 function videoSdp(sdp, kbps) {
   const lines = sdp.split('\r\n');
   const mi = lines.findIndex(l => l.startsWith('m=video'));
@@ -1133,7 +1134,7 @@ function videoSdp(sdp, kbps) {
     const first = h264.flatMap(pt => [pt, ...rtxOf(pt)]);
     lines[mi] = [...head.slice(0, 3), ...first, ...pts.filter(p => !first.includes(p))].join(' ');
   }
-  const extra = `x-google-start-bitrate=${Math.round(kbps * 0.7)};x-google-min-bitrate=${Math.round(kbps * 0.3)};x-google-max-bitrate=${kbps}`;
+  const extra = `x-google-start-bitrate=${Math.round(kbps * 0.5)};x-google-max-bitrate=${kbps}`;
   for (const [pt, codec] of Object.entries(rtpmap)) {
     if (!['H264', 'VP8', 'VP9', 'AV1'].includes(codec)) continue;
     const i = lines.findIndex((l, k) => k > mi && (end < 0 || k < end) && l.startsWith(`a=fmtp:${pt} `));
@@ -1188,9 +1189,9 @@ function setSink(media) { if (settings.outId && media.setSinkId) media.setSinkId
 
 // ---------- utilidades ----------
 let toastTimer;
-function toast(t) {
+function toast(t, ms = 3000) {
   const el = $('toast'); el.textContent = t; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
 function randomCode(n = 6) {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = '';
@@ -1305,6 +1306,7 @@ function boot() {
   startPeer();
   startLookup();
   applyServerFlags();
+  setTimeout(syncProfIdentity, 25000);
   // abriu por um link de convite: manda pedido de amizade pra quem convidou
   const inv = String(new URLSearchParams(location.search).get('convite') || '').toUpperCase();
   if (isCode(inv) && inv !== profile.code && !isFriend(inv)) {
@@ -1384,7 +1386,7 @@ function changeUser() {
   const u = cleanUser(n);
   if (!u) return toast('Usuário inválido. Use só letras minúsculas e números, sem espaço.');
   if (u === profile.user) return;
-  profile.user = u; save('me', profile); renderSelf();
+  profile.user = u; save('me', profile); renderSelf(); syncProfIdentity();
   lookupTries = 0; startLookup();
   for (const o of online.values()) if (o.conn.open) o.conn.send(fhelloMsg(codeOf(o.conn.peer)));
   toast(`Agora você é @${u}`);
@@ -1653,10 +1655,23 @@ function renderFriends() {
                          status: ready ? (o.room ? 'VOZ' : '') : 'Pedido enviado, aguardando' });
     else offline.push({ code: f.code, name: f.name, dot: '', extra, status: '' });
   }
+  const onNow = new Set();
   for (const [code, p] of presence) {
     if (now - p.seen >= PRESENCE_TTL || code === profile.code || isFriend(code) || requests.has(code) || isBanned(code)) continue;
     const add = el('button', 'icon', '➕'); add.title = 'Adicionar amigo'; add.onclick = () => addFriend(code, p.name, p.user);
     people.push({ code, name: p.name, dot: 'on', extra: [add], status: p.room ? 'VOZ' : '' });
+    onNow.add(code);
+  }
+  // o resto do servidor (quem já apareceu, tem perfil ou cargo), mesmo sem ser amigo: vai pro Offline, igual Discord
+  const everyone = new Set([...Object.keys(known), ...Object.values(channels).filter(c => (c.type === 'prof' || c.type === 'grant') && !c.deleted).map(c => c.code)]);
+  for (const code of everyone) {
+    if (!isCode(code) || code === profile.code || onNow.has(code) || isFriend(code) || requests.has(code) || isBanned(code)) continue;
+    const name = nameOfCode(code);
+    if (name === code) continue; // nunca soubemos o nome: não dá pra mostrar direito
+    const user = profOf(code)?.user || known[code]?.user || '';
+    const extra = [];
+    if (user) { const add = el('button', 'icon', '➕'); add.title = 'Adicionar amigo'; add.onclick = () => addFriend(code, name, user); extra.push(add); }
+    offline.push({ code, name, dot: '', extra, status: '' });
   }
 
   // separa por cargo, igual Discord (LIDER SUPREMO — 1, LIDERES 2 — 4...)
@@ -1735,6 +1750,7 @@ function onPresence(m) {
     if (!cur || seen > cur.seen) {
       const rid = typeof x.rid === 'string' && /^[\w-]{1,20}$/.test(x.rid) ? x.rid : '';
       presence.set(x.code, { name: cleanName(x.name) || x.code, user: cleanUser(x.user), room: String(x.room || '').slice(0, 30), rid, since: Number(x.since) || 0, seen });
+      rememberMember(x.code, cleanName(x.name), cleanUser(x.user));
       // está no mesmo canal que eu e ainda não nos conectamos: liga (só o de id menor, pra não duplicar)
       const pid = PREFIX + x.code;
       if (room && rid === room.id && !members.has(pid) && peer.id < pid && !isBanned(x.code)) connectTo(pid);
@@ -1747,7 +1763,7 @@ setInterval(() => {
   sendPresence();
   const now = Date.now();
   for (const [code, p] of presence) if (now - p.seen > PRESENCE_TTL * 3) presence.delete(code);
-  renderFriends(); // tira quem saiu
+  if (profile) renderFriends(); // tira quem saiu
 }, 10000);
 
 // ---------- calls (igual canais de voz) ----------
@@ -2144,6 +2160,8 @@ function cleanChannel(c) {
     if (!isCode(c.code) || c.id !== 'p-' + c.code) return null;
     const avatar = typeof c.avatar === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c.avatar) && c.avatar.length < 40000 ? c.avatar : '';
     return { ...base, code: c.code, bio: String(c.bio || '').slice(0, 190), theme: THEMES[c.theme] ? c.theme : 'padrao', avatar,
+             // nome e @usuário: com isso todo mundo do servidor aparece na lista (online e offline), igual Discord
+             name: cleanName(c.name).trim(), user: cleanUser(c.user),
              pron: String(c.pron || '').trim().slice(0, 20),
              decor: DECORS[c.decor] ? c.decor : '', effect: EFFECTS[c.effect] ? c.effect : '',
              // perfil completo: cor da faixa, "passatempo", estilo do nome, conexões e jogos
@@ -2209,7 +2227,7 @@ function nameOfCode(code) {
   if (nick) return nick;
   if (code === profile.code) return profile.name;
   return friends.find(f => f.code === code)?.name || online.get(code)?.name || presence.get(code)?.name
-    || members.get(PREFIX + code)?.name || code;
+    || members.get(PREFIX + code)?.name || profOf(code)?.name || known[code]?.name || code;
 }
 // escolhas suas sobre cada pessoa (ficam só no seu PC): volume, nota, apelido, ignorar, bloquear...
 const userPrefs = load('userPrefs', {});
@@ -2672,6 +2690,26 @@ function saveProfField(changes) {
   updateChannel({ ...p }, changes);
   renderFriends(); drawn = { ch: null, ids: [] }; renderMsgs();
 }
+// meu nome e @usuário vão junto do perfil pra todo mundo do servidor (assim apareço na lista deles mesmo offline)
+// Espera os amigos mandarem os dados antes: num PC novo, criar o perfil do zero apagaria foto e bio de todo mundo.
+function syncProfIdentity() {
+  if (!profile) return;
+  const p = profOf(profile.code);
+  if (p && p.name === profile.name && p.user === profile.user) return;
+  if (!p && ![...online.values()].some(o => o.conn?.open)) return setTimeout(syncProfIdentity, 60000);
+  const pp = p || { id: 'p-' + profile.code, type: 'prof', code: profile.code, ts: Date.now() };
+  updateChannel({ ...pp }, { name: profile.name, user: profile.user });
+}
+// quem já apareceu no servidor (nome e @usuário), guardado no PC: aparece na lista de Offline igual Discord
+const known = load('known', {});
+let knownTimer;
+function rememberMember(code, name, user) {
+  if (!isCode(code) || !name || name === code) return;
+  const k = known[code];
+  if (k && k.name === name && (k.user || '') === (user || '')) return;
+  known[code] = { name, user: user || k?.user || '' };
+  clearTimeout(knownTimer); knownTimer = setTimeout(() => save('known', known), 2000);
+}
 function removeGame(field, i) {
   const list = [...(profOf(profile.code)?.[field] || [])]; list.splice(i, 1);
   saveProfField({ [field]: list }); openFullProfile(profile.code);
@@ -2804,7 +2842,8 @@ $('peSave').onclick = () => {
   const bad = [...$('peLinks').querySelectorAll('input')].find(i => i.value.trim() && !cleanLink({ t: i.dataset.t, url: i.value.trim() }));
   if (bad) toast(`O link do ${LINK_TYPES[bad.dataset.t].name} não parece certo (precisa começar com https://...). Ficou de fora.`);
   updateChannel({ ...p }, { bio: $('peBio').value.slice(0, 190), pron: $('pePron').value.trim().slice(0, 20), theme: editTheme, avatar: editAvatar, decor: editDecor, effect: editEffect,
-    status: $('peStatus').value.trim().slice(0, 60), banner: $('peBannerOn').checked ? $('peBanner').value : '', nameStyle: editNameStyle, links });
+    status: $('peStatus').value.trim().slice(0, 60), banner: $('peBannerOn').checked ? $('peBanner').value : '', nameStyle: editNameStyle, links,
+    name: profile.name, user: profile.user });
   $('profEdit').hidden = true;
   renderSelf(); renderFriends(); drawn = { ch: null, ids: [] }; renderMsgs();
   if (room) renderMembers();
@@ -4214,23 +4253,34 @@ async function askAutostartOnce() {
 // ---------- atualização ----------
 // No .exe: ele já atualiza sozinho toda vez que abre; aqui só confere de tempos em tempos com o app aberto.
 // No site: compara com o version.json publicado junto.
-async function checkUpdate() {
-  if (room) return; // não atrapalha quem está na call
+// manual = botão "Buscar atualização" (confere mesmo na call); devolve 'exe', 'app', 'none' ou 'erro'
+async function checkUpdate(manual) {
+  if (room && !manual) return; // não atrapalha quem está na call
   try {
     const r = await fetch('/api/update', { method: 'POST', headers: { 'X-TelaCall': '1' }, cache: 'no-store' });
     if (r.ok) {
       const info = await r.json();
-      if (info.restart) showUpd('exe');
-      else if (info.app > APP_VERSION) showUpd('app');
-      return;
+      if (info.restart) { showUpd('exe'); return 'exe'; }
+      if (info.app > APP_VERSION) { showUpd('app'); return 'app'; }
+      return info.enabled ? 'none' : 'erro';
     }
   } catch {}
-  if (!/^https?:$/.test(location.protocol) || location.port === '47821') return;
+  if (!/^https?:$/.test(location.protocol) || location.port === '47821') return 'erro';
   try {
     const v = await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json();
-    if (v.version > APP_VERSION) showUpd('app');
-  } catch {}
+    if (v.version > APP_VERSION) { showUpd('app'); return 'app'; }
+    return 'none';
+  } catch { return 'erro'; }
 }
+$('btnCheckUpd').onclick = async () => {
+  const b = $('btnCheckUpd'); b.disabled = true; b.textContent = 'Buscando...';
+  const res = await checkUpdate(true);
+  b.disabled = false; b.textContent = '🔄 Buscar atualização';
+  if (res === 'app') { if (room) toast('🎉 Tem versão nova! Clique em "Atualizar agora" quando sair da call.'); else location.reload(); }
+  else if (res === 'exe') toast('🎉 Atualização baixada! Feche e abra o Concorde pra terminar.');
+  else if (res === 'none') toast(`✅ Você já está na versão mais nova (${APP_VERSION}).`);
+  else toast('Não consegui buscar agora. Confira a internet e tente de novo.');
+};
 function showUpd(kind) {
   $('updText').textContent = kind === 'exe' ? '🎉 Atualização baixada! Feche e abra o programa pra terminar.' : '🎉 Tem uma versão nova do app!';
   $('updBtn').textContent = kind === 'exe' ? 'Entendi' : 'Atualizar agora';
@@ -4577,7 +4627,7 @@ async function beginShare(audioSrc) {
     if (old && screen === old) stopShare(); // estava com a câmera ligada: troca pela tela
     screen = got;
   } catch { toast('Compartilhamento cancelado.'); return; }
-  screenKind = 'screen';
+  screenKind = 'screen'; lowCapTicks = 0; lowCapWarned = false;
   if (audioSrc && typeof audioSrc.pid === 'number') {
     try {
       screen.addTrack(await appAudioTrack(audioSrc.pid, audioSrc.name));
@@ -4701,23 +4751,33 @@ function showScreen(id, stream) {
   renderMembers();
 }
 // selo de qualidade em cada tela: resolução e fps reais
+let lowCapTicks = 0, lowCapWarned = false; // captura abaixo de 50fps (jogo enchendo a placa): avisa uma vez por live
 setInterval(async () => {
   for (const tile of document.querySelectorAll('.screen')) {
     const id = tile.dataset.sid, v = tile.querySelector('video'), badge = tile.querySelector('.q');
     let fps = 0, h = v.videoHeight, w = v.videoWidth;
     if (id === 'me') {
       // o que está saindo de verdade pra quem assiste (o pior entre eles) e o motivo de cair
-      let why = '', worst = null;
+      let why = '', worst = null, cap = 0;
       for (const m of members.values()) {
         try {
           (await m.screenOut?.peerConnection?.getStats())?.forEach(r => {
             if (r.type === 'outbound-rtp' && r.kind === 'video' && r.frameHeight && (!worst || r.framesPerSecond < worst.framesPerSecond)) worst = r;
+            if (r.type === 'media-source' && r.kind === 'video' && r.framesPerSecond) cap = r.framesPerSecond; // quadros que a captura da tela entrega
           });
         } catch {}
       }
       if (worst) {
         w = worst.frameWidth; h = worst.frameHeight; fps = worst.framesPerSecond || 0;
         why = { bandwidth: ' · internet', cpu: ' · PC pesado' }[worst.qualityLimitationReason] || '';
+        // a própria captura não chega a 60: quase sempre é jogo usando a placa de vídeo inteira (testado: placa a 100% = ~25fps)
+        const gpuLow = !why && curQ().fps >= 60 && cap && cap < 50 && fps < 50;
+        lowCapTicks = gpuLow ? lowCapTicks + 1 : 0;
+        if (lowCapTicks >= 2) why = ' · placa de vídeo cheia';
+        if (lowCapTicks === 5 && !lowCapWarned) {
+          lowCapWarned = true;
+          toast('🎮 A live caiu pra ' + Math.round(cap) + 'fps porque o jogo está usando a placa de vídeo inteira. Limite o FPS do jogo (ex.: 120, ou ligue o V-Sync / Radeon Chill) que a live fica lisa.', 12000);
+        }
       } else {
         const s = screen?.getVideoTracks()[0]?.getSettings();
         if (s) { w = s.width; h = s.height; fps = s.frameRate; }
@@ -4725,7 +4785,9 @@ setInterval(async () => {
       if (!h) continue;
       badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}${why}`;
       badge.classList.toggle('hd', h >= 1080 && !why);
-      badge.title = why ? 'A qualidade caiu por causa ' + (why.includes('internet') ? 'da internet (upload). Tente 30fps ou 720p.' : 'do PC pesado. Feche programas ou use 720p.') : 'Qualidade que está saindo pros amigos';
+      badge.title = why ? 'A qualidade caiu por causa ' + (why.includes('internet') ? 'da internet (upload). Tente 30fps ou 720p.'
+        : why.includes('placa') ? 'do jogo usando a placa de vídeo inteira: sobra pouco pra capturar a tela. Limite o FPS do jogo (ex.: 120) ou ligue o V-Sync / Radeon Chill.'
+        : 'do PC pesado. Feche programas ou use 720p.') : 'Qualidade que está saindo pros amigos';
       continue;
     } else {
       try {
