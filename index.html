@@ -87,6 +87,65 @@
   .leavelive{position:absolute;left:8px;bottom:8px;background:#000a;border:0;color:#fff;font-size:13px;padding:5px 10px;border-radius:6px;opacity:0;transition:opacity .15s;z-index:2}
   .screen:hover .leavelive{opacity:1}
   .leavelive:hover{background:#da373c}
+  /* estilos do nome (igual "Estilo do nome exibido" do Discord) */
+  .ns{font-weight:800}
+  .ns-neon{color:#7dff6a;text-shadow:0 0 6px #39ff14,0 0 14px #1fbf0a;font-family:"Courier New",monospace;letter-spacing:.5px}
+  .ns-rosa{color:#ff8ee8;text-shadow:0 0 6px #ff3ccf,0 0 14px #c21ba2}
+  .ns-arco{background:linear-gradient(90deg,#ff4d4d,#ffb84d,#fff04d,#4dff88,#4dc3ff,#b04dff);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:nsmove 4s linear infinite}
+  .ns-fogo{background:linear-gradient(90deg,#ffdd55,#ff7b00,#ff2a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 4px #ff5a00aa)}
+  .ns-gelo{background:linear-gradient(90deg,#e0fbff,#7fdcff,#3aa7ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 4px #7fdcffaa)}
+  .ns-ouro{background:linear-gradient(90deg,#fff1a8,#f5c542,#b8860b,#f5c542);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:nsmove 5s linear infinite}
+  @keyframes nsmove{to{background-position:200% 0}}
+  .fxopt .ns{font-size:13px;max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .peRow{display:flex;align-items:center;gap:12px}
+  .peRow input[type=color]{width:48px;height:32px;padding:0;border:0;background:transparent}
+  .peLinks{display:flex;flex-direction:column;gap:6px}
+  .peLink{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:8px;font-size:13px}
+  .pcFull{width:100%;margin-top:10px}
+  /* perfil completo */
+  .fpBox{position:relative;display:flex;width:min(920px,100%);height:min(760px,92vh);background:#1a1a1e;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px #000a}
+  .fpClose{position:absolute;right:10px;top:10px;z-index:5;font-size:16px}
+  .fpLeft{position:relative;width:400px;flex:none;overflow:auto;border-right:1px solid var(--line)}
+  .fpBanner{height:140px}
+  .fpAv{position:absolute;left:22px;top:82px;width:120px!important;height:120px!important;font-size:50px!important;border:7px solid #1a1a1e;box-sizing:content-box}
+  .fpAv .dot{width:24px;height:24px;right:4px;bottom:4px;border-width:5px}
+  .fpBubble{position:absolute;left:160px;top:150px;background:#2a2a2f;border-radius:14px;padding:6px 12px;font-size:13px;color:#dbdee1;max-width:210px}
+  .fpBubble.add{color:var(--muted);font-style:italic;cursor:pointer}
+  .fpBody{padding:76px 22px 22px;position:relative;z-index:1}
+  .fpName{font-size:26px;font-weight:800}
+  .fpUser{display:flex;align-items:center;flex-wrap:wrap;gap:6px;color:#dbdee1;font-size:14px;margin-top:2px}
+  .fpAdd{color:var(--muted);font-style:italic;cursor:pointer}
+  .fpAdd:hover{color:var(--text)}
+  .fpRole{font-size:12px}
+  .fpActs{display:flex;gap:8px;margin:16px 0}
+  .fpActs button{padding:7px 14px}
+  .fpSec{margin-top:16px}
+  .fpLbl{font-size:12px;font-weight:700;color:#b5bac1;margin-bottom:4px}
+  .fpText{font-size:14px;white-space:pre-wrap;word-break:break-word}
+  .fpText a{color:#00a8fc}
+  .fpConns{display:flex;flex-wrap:wrap;gap:6px}
+  .fpConn{display:flex;align-items:center;gap:6px;background:#2a2a2f;border-radius:6px;padding:5px 10px;color:var(--text);text-decoration:none;font-size:13px}
+  .fpConn:hover{background:#34343a}
+  .fpNote{width:100%;background:transparent;border:1px solid transparent;color:var(--text);resize:none;font:inherit;font-size:14px;border-radius:6px;padding:4px}
+  .fpNote:hover,.fpNote:focus{border-color:var(--line);outline:none}
+  .fpRight{flex:1;min-width:0;padding:22px;overflow:auto}
+  .fpTabs{display:flex;gap:20px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .fpTabs button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;padding:8px 0;color:var(--muted);font-weight:600}
+  .fpTabs button.cur{color:var(--text);border-bottom-color:var(--text)}
+  .fpWidget{background:#232328;border:1px solid #2e2e33;border-radius:12px;padding:14px;margin-bottom:12px}
+  .fpWHead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+  .gGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+  .gTile{position:relative;display:block;aspect-ratio:2/3;border-radius:8px;overflow:hidden;background:#111}
+  .gTile img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .15s}
+  .gTile img.wide{object-fit:cover;object-position:center}
+  .gTile:hover img{transform:scale(1.04)}
+  .gName{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(transparent,#000c);opacity:0;transition:opacity .15s}
+  .gTile:hover .gName{opacity:1}
+  .gDel{position:absolute;right:4px;top:4px;width:22px;height:22px;padding:0;border-radius:50%;background:#000b;border:0;color:#fff;font-size:11px;display:none}
+  .gTile:hover .gDel{display:block}
+  .gSmall{width:92px;height:35px;object-fit:cover;border-radius:4px;flex:none}
+  #gamePick .card{width:min(520px,100%);max-height:86vh}
+  @media (max-width:860px){ .fpBox{flex-direction:column;overflow:auto} .fpLeft{width:100%;border:0} }
   /* cartão de link (igual Discord) */
   .embed{margin-top:6px;max-width:440px;background:#202024;border:1px solid #2a2a2f;border-left:4px solid #3a3a40;border-radius:6px;padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px}
   .embSite{font-size:12px;color:#b5bac1}
@@ -124,6 +183,12 @@
   .apRow .nm{font-weight:600}
   .apBtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
   .livecard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;background:#1a1a1e;border:1px solid var(--line);border-radius:10px;padding:20px}
+  .livecard{position:relative;overflow:hidden}
+  .livecard .lcPrev{position:absolute;inset:0;background:center/cover no-repeat;filter:brightness(.45) blur(1px);z-index:0}
+  .livecard > :not(.lcPrev){position:relative;z-index:1}
+  .sndRow{margin:0;padding:12px 0;border-bottom:1px solid #2a2a2f}
+  .sndPrev{font-size:13px;color:#00a8fc}
+  .advBtn{background:#2a2a2f;width:40px;height:40px;font-size:18px}
   .livecard .lcAv{width:72px;height:72px;font-size:30px}
   .livecard .lcName{font-size:18px;font-weight:700}
   .livecard .lcSub{color:var(--muted);font-size:14px}
@@ -806,6 +871,7 @@
     <div id="invBody"></div>
   </div>
 </div>
+<div id="fullProf" class="modal" hidden></div>
 <div id="profWrap" class="modal" hidden><div id="profCard"></div></div>
 <div id="profEdit" class="modal" hidden>
   <div class="card" style="width:min(480px,100%)">
@@ -823,6 +889,14 @@
     <textarea id="peBio" maxlength="190" rows="3" placeholder="Ex: :steam: justinjjcn007 · Twitch: ..."></textarea>
     <div class="lbl">Pronomes</div>
     <input id="pePron" maxlength="20" placeholder="Ex: Ele, Ela, Ele/Dele">
+    <div class="lbl">Passatempo recente</div>
+    <input id="peStatus" maxlength="60" placeholder="Ex: Zerando Soulmask 🔥">
+    <div class="lbl">Cor da faixa</div>
+    <div class="peRow"><input type="color" id="peBanner" value="#5865f2"><label class="chk"><input type="checkbox" id="peBannerOn"> Usar cor na faixa</label></div>
+    <div class="lbl">Estilo do nome exibido</div>
+    <div id="peNameStyles" class="fxpick"></div>
+    <div class="lbl">Conexões</div>
+    <div id="peLinks" class="peLinks"></div>
 
     <div class="lbl">Fundo do perfil</div>
     <div id="peThemes"></div>
@@ -891,6 +965,12 @@
           <option value="1440p60">Quad HD 1440p 60fps (internet boa)</option>
           <option value="1080p60">Full HD 1080p 60fps</option><option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option><option value="720p30">720p 30fps (internet fraca)</option></select></div>
+        <div class="tog"><div><b>Mostrar prévias da transmissão</b><div class="tip">Permite que os outros vejam uma prévia (fotinho atualizada) da sua transmissão antes de entrarem nela.</div></div><input type="checkbox" class="tsw" id="sLivePrev"></div>
+        <div class="tog"><div><b>Mostrar configurações avançadas da transmissão</b><div class="tip">Atenuação da transmissão, intensidade da atenuação e mais</div></div><button class="ib advBtn" id="sAdvBtn">⌄</button></div>
+        <div id="sAdv" hidden>
+          <div class="tog"><div><b>Atenuação da transmissão</b><div class="tip">Abaixa o som da live que você está assistindo enquanto alguém da call fala, pra ouvir todo mundo.</div></div><input type="checkbox" class="tsw" id="sDuck"></div>
+          <div class="lbl">Intensidade da atenuação</div><input type="range" class="slider" id="sDuckAmt" min="10" max="90" step="5">
+        </div>
         <div class="tog"><div><b>Som da transmissão</b><div class="tip">Manda o som do PC (jogo, vídeo, música) junto com a tela. Quem assiste também pode desligar do lado dele.</div></div><input type="checkbox" class="tsw" id="sShareAudio"></div>
         <div class="tog"><div><b>Cortar o som do próprio Concorde</b><div class="tip">Evita que as vozes da call voltem como eco pros amigos. Mas corta também qualquer som tocando no <b>mesmo navegador</b> do Concorde: se o filme estiver nele e não sair som, desligue isto (e use fone). Filme em outro programa ou navegador sai normal.</div></div><input type="checkbox" class="tsw" id="sCutOwn"></div>
         <div class="tip">🎬 Pra filme: compartilhe a <b>janela do player</b> (aba "Janela") — vai só o som dela, sem eco. Ou "Tela inteira" com "Compartilhar áudio do sistema" ligado.</div>
@@ -898,9 +978,7 @@
       </section>
       <section data-page="sons">
         <h2>Sons</h2>
-        <div class="tog"><div><b>Entrar e sair da call</b><div class="tip">Toca quando alguém entra ou sai.</div></div><input type="checkbox" class="tsw" id="optSndCall"></div>
-        <div class="tog"><div><b>Mutar e ensurdecer</b></div><input type="checkbox" class="tsw" id="optSndMute"></div>
-        <div class="tog"><div><b>Mensagem nova</b></div><input type="checkbox" class="tsw" id="optSndMsg"></div>
+        <div id="sndList"></div>
         <div class="lbl">Volume dos sons</div><input type="range" class="slider" id="sndVol" min="0" max="100" step="1">
       </section>
       <section data-page="conta">
@@ -922,7 +1000,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1013,7 +1091,12 @@ function save(k, v) { try { localStorage.setItem(KEY + '-' + k, JSON.stringify(v
 
 let profile = load('me', null);        // { code, name }
 const settings = Object.assign({ micId: '', outId: '', ns: true, ec: true, agc: true, inProf: 'custom', autoSens: true, sens: -50,
-  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100, cutOwn: true }, load('settings', {}));
+  micVol: 100, outVol: 100, sndCall: true, sndMute: true, sndMsg: true, sndVol: 100, cutOwn: true, livePreview: true, duck: true, duckAmt: 50, snd: {} }, load('settings', {}));
+// quem tinha desligado os sons antigos: leva pros interruptores novos
+if (settings.sndCall === false) settings.snd = { ...settings.snd, join: false, leave: false };
+if (settings.sndMute === false) settings.snd = { ...settings.snd, mute: false, unmute: false, deaf: false, undeaf: false };
+if (settings.sndMsg === false) settings.snd = { ...settings.snd, msg: false };
+delete settings.sndCall; delete settings.sndMute; delete settings.sndMsg;
 let friends = load('friends', []);     // [{ code, name }]
 const online = new Map();              // code -> { conn, name, theyAdded, lastSeen, room }
 const requests = new Map();            // code -> { conn, name }
@@ -1464,7 +1547,10 @@ function personRow(x) {
   const d = el('div', 'friend' + (x.dot === '' ? ' off' : ''));
   const info = el('div', 'info');
   const nm = el('div', 'nm'); const c = topColor(x.code); if (c) nm.style.color = c;
-  nm.appendChild(el('span', 'nmt', nameOfCode(x.code) === x.code ? x.name : nameOfCode(x.code)));
+  const ns = profOf(x.code)?.nameStyle;
+  const nmt = styledName(nameOfCode(x.code) === x.code ? x.name : nameOfCode(x.code), ns); nmt.classList.add('nmt');
+  if (ns) nm.style.color = ''; // estilo do nome (neon, arco-íris...) no lugar da cor do cargo
+  nm.appendChild(nmt);
   if (x.code === OWNER) nm.appendChild(el('span', 'crown', '👑'));
   info.appendChild(nm);
   if (x.status === 'VOZ') {
@@ -1924,7 +2010,13 @@ function cleanChannel(c) {
     const avatar = typeof c.avatar === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c.avatar) && c.avatar.length < 40000 ? c.avatar : '';
     return { ...base, code: c.code, bio: String(c.bio || '').slice(0, 190), theme: THEMES[c.theme] ? c.theme : 'padrao', avatar,
              pron: String(c.pron || '').trim().slice(0, 20),
-             decor: DECORS[c.decor] ? c.decor : '', effect: EFFECTS[c.effect] ? c.effect : '' };
+             decor: DECORS[c.decor] ? c.decor : '', effect: EFFECTS[c.effect] ? c.effect : '',
+             // perfil completo: cor da faixa, "passatempo", estilo do nome, conexões e jogos
+             banner: /^#[0-9a-f]{6}$/i.test(c.banner) ? c.banner : '',
+             status: String(c.status || '').trim().slice(0, 60),
+             nameStyle: NAME_STYLES[c.nameStyle] ? c.nameStyle : '',
+             links: (Array.isArray(c.links) ? c.links : []).map(cleanLink).filter(Boolean).slice(0, 6),
+             games: cleanGames(c.games), wish: cleanGames(c.wish) };
   }
   if (!['text', 'voice', 'cat', 'meta'].includes(c.type)) return null;
   let name = String(c.name || '').trim().slice(0, c.type === 'meta' ? 40 : 30);
@@ -1941,7 +2033,9 @@ function allowed(c) {
 function mergeChannel(raw) {
   const c = cleanChannel(raw); if (!c) return false;
   const cur = channels[c.id];
-  if (cur && c.upd <= cur.upd) return false;
+  // mesma versão mas com mais dados: quem estava com o app antigo tinha jogado fora campos novos (jogos, conexões...)
+  const richer = cur && c.upd === cur.upd && JSON.stringify(c).length > JSON.stringify(cur).length;
+  if (cur && c.upd <= cur.upd && !richer) return false;
   if (!allowed(c)) return false;
   channels[c.id] = c;
   if (c.type === 'grant' && c.code === profile.code) applyServerFlags();
@@ -2035,7 +2129,7 @@ function onMod(msg, fromCode) {
     const r = cleanRoom(msg.room);
     if (r && (!room || room.id !== r.id)) {
       joinRoom({ id: r.id, name: r.name }, r.members.map(x => x.id));
-      toast(`${who} te moveu pra 🔊 ${r.name}`);
+      toast(`${who} te moveu pra 🔊 ${r.name}`); SND.moved();
     }
   }
 }
@@ -2222,6 +2316,8 @@ function openProfile(code) {
     else if (!isFriend(code)) { const a = el('button', 'primary', '➕ Adicionar'); a.onclick = () => { closeProfile(); addFriend(code, name, u); }; acts.appendChild(a); }
   }
   body.appendChild(acts);
+  const full = el('button', 'pcFull', 'Ver perfil completo'); full.onclick = () => openFullProfile(code);
+  body.appendChild(full);
   $('profWrap').hidden = false;
 }
 // desenha o cartão (fundo, foto, nome, sobre mim, cargos) dentro de "card"; devolve o corpo pra pôr os botões
@@ -2235,7 +2331,8 @@ function fillProfileCard(card, code) {
   banner.style.background = theme ? 'transparent' : (topColor(code) || color(name));
   const av = avatar(name, (self || online.get(code)?.theyAdded || presence.has(code)) ? 'on' : '', code); av.classList.add('pcAv');
   const body = el('div', 'pcBody');
-  const nm = el('div', 'pcName', name); if (topColor(code)) nm.style.color = topColor(code);
+  const nm = el('div', 'pcName'); nm.appendChild(styledName(name, p.nameStyle)); if (!p.nameStyle && topColor(code)) nm.style.color = topColor(code);
+  if (p.banner) banner.style.background = p.banner;
   body.append(nm, el('div', 'pcUser', (u ? '@' + u : '#' + code) + (p.pron ? ' • ' + p.pron : '')));
   const g = gameOf(code);
   if (g) {
@@ -2294,7 +2391,194 @@ function fxLayer(effect) {
   }
   return box;
 }
-let editAvatar = '', editTheme = 'padrao', editDecor = '', editEffect = '';
+// ---------- perfil completo (igual Discord): estilo do nome, conexões, jogos que eu gosto, lista de desejos ----------
+const NAME_STYLES = { neon: 'Neon verde', rosa: 'Neon rosa', arco: 'Arco-íris', fogo: 'Fogo', gelo: 'Gelo', ouro: 'Dourado' };
+const LINK_TYPES = {
+  steam: { name: 'Steam', ic: '🎮', re: /^https:\/\/(store\.)?steamcommunity\.com\/|^https:\/\/steamcommunity\.com\// },
+  twitch: { name: 'Twitch', ic: '📺', re: /^https:\/\/(www\.)?twitch\.tv\// },
+  youtube: { name: 'YouTube', ic: '▶️', re: /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\// },
+  instagram: { name: 'Instagram', ic: '📸', re: /^https:\/\/(www\.)?instagram\.com\// },
+  tiktok: { name: 'TikTok', ic: '🎵', re: /^https:\/\/(www\.)?tiktok\.com\// },
+  x: { name: 'X', ic: '✖️', re: /^https:\/\/(www\.)?(x|twitter)\.com\// },
+};
+const cleanLink = l => l && LINK_TYPES[l.t] && typeof l.url === 'string' && l.url.length < 200 && LINK_TYPES[l.t].re.test(l.url) ? { t: l.t, url: l.url } : null;
+const cleanGames = a => (Array.isArray(a) ? a : []).filter(g => g && Number.isInteger(g.id) && g.id > 0 && g.id < 1e8)
+  .map(g => ({ id: g.id, name: String(g.name || '').slice(0, 60),
+               ...(typeof g.img === 'string' && /^https:\/\/[\w.-]+\.steamstatic\.com\/[\w\/.?=&-]+$/.test(g.img) && g.img.length < 300 ? { img: g.img } : {}) })).slice(0, 20);
+// capa do jogo: tenta a capa em pé, depois o banner, depois a miniatura guardada na busca
+const gameImgs = g => [`https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${g.id}/library_600x900.jpg`,
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/library_600x900.jpg`,
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg`, g.img].filter(Boolean);
+const gameHeader = id => `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`;
+function styledName(text, style) {
+  const s = el('span', style ? 'ns ns-' + style : '', text);
+  return s;
+}
+function gameTile(g, onRemove) {
+  const t = el('a', 'gTile'); t.href = 'https://store.steampowered.com/app/' + g.id; t.target = '_blank'; t.rel = 'noopener noreferrer'; t.title = g.name;
+  const srcs = gameImgs(g); let si = 0;
+  const img = document.createElement('img'); img.src = srcs[0]; img.alt = g.name; img.loading = 'lazy';
+  img.onerror = () => { if (++si < srcs.length) { img.src = srcs[si]; if (si >= 2) img.classList.add('wide'); } else img.remove(); };
+  t.append(img, el('span', 'gName', g.name));
+  if (onRemove) { const x = el('button', 'gDel', '✕'); x.title = 'Tirar'; x.onclick = e => { e.preventDefault(); e.stopPropagation(); onRemove(); }; t.appendChild(x); }
+  return t;
+}
+let fpTab = 'mural';
+function openFullProfile(code) {
+  if (!isCode(code)) return;
+  closeProfile();
+  const self = code === profile.code, p = profOf(code) || {};
+  const name = nameOfCode(code), u = self ? profile.user : userOf(code) || presence.get(code)?.user;
+  const wrap = $('fullProf'); wrap.innerHTML = '';
+  const box = el('div', 'fpBox');
+  const close = el('button', 'ib fpClose', '✕'); close.title = 'Fechar'; close.onclick = () => { wrap.hidden = true; };
+  // ---- coluna da esquerda: o cartão ----
+  const left = el('div', 'fpLeft'), theme = THEMES[p.theme]?.bg;
+  left.style.background = theme || '#232428';
+  const banner = el('div', 'fpBanner'); banner.style.background = p.banner || (theme ? 'transparent' : topColor(code) || color(name));
+  const av = avatar(name, (self || isOn(code)) ? 'on' : '', code); av.classList.add('fpAv');
+  left.append(banner, av);
+  if (p.status) left.appendChild(el('div', 'fpBubble', p.status));
+  else if (self) { const b = el('div', 'fpBubble add', '＋ Passatempo recente?'); b.onclick = () => { wrap.hidden = true; openProfileEdit(); }; left.appendChild(b); }
+  const body = el('div', 'fpBody');
+  const nm = el('div', 'fpName'); nm.appendChild(styledName(name, p.nameStyle)); if (!p.nameStyle && topColor(code)) nm.style.color = topColor(code);
+  if (code === OWNER) nm.appendChild(el('span', 'crown', ' 👑'));
+  const line = el('div', 'fpUser', (u ? u : code) + (p.pron ? ' • ' + p.pron : self ? '' : ''));
+  if (self && !p.pron) { const a = el('span', 'fpAdd', ' • Adicionar pronomes'); a.onclick = () => { wrap.hidden = true; openProfileEdit(); }; line.appendChild(a); }
+  const roles = rolesOf(code);
+  if (roles[0]) { const chip = el('span', 'chip fpRole'); const d = el('span', 'rdot'); d.style.background = roles[0].color; chip.append(d, roles[0].name); line.appendChild(chip); }
+  body.append(nm, line);
+  const acts = el('div', 'fpActs');
+  if (self) { const b = el('button', 'primary', '✏️ Editar perfil'); b.onclick = () => { wrap.hidden = true; openProfileEdit(); }; acts.appendChild(b); }
+  else {
+    if (isFriend(code)) { const b = el('button', 'primary', '💬 Mensagem'); b.onclick = () => { wrap.hidden = true; openDm(code); }; acts.appendChild(b); }
+    else { const b = el('button', 'primary', '➕ Adicionar amigo'); b.onclick = () => addFriend(code, name, u); acts.appendChild(b); }
+    if (online.get(code)?.theyAdded) { const c = el('button', '', '📞'); c.title = 'Chamar'; c.onclick = () => { wrap.hidden = true; callFriend(code); }; acts.appendChild(c); }
+    const more = el('button', '', '⋯'); more.title = 'Mais'; more.onclick = e => memberMenu(code, e); acts.appendChild(more);
+  }
+  body.appendChild(acts);
+  const sec = (title, content) => { const s = el('div', 'fpSec'); s.append(el('div', 'fpLbl', title), content); body.appendChild(s); };
+  if (p.bio) { const b = el('div', 'fpText'); b.appendChild(linkify(p.bio)); sec('Bio', b); }
+  if (p.ts) sec('Membro desde', el('div', 'fpText', new Date(p.ts).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })));
+  const conns = el('div', 'fpConns');
+  for (const l of p.links || []) { const a = el('a', 'fpConn'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.append(el('span', '', LINK_TYPES[l.t].ic), LINK_TYPES[l.t].name); conns.appendChild(a); }
+  if (self) { const add = el('span', 'fpAdd', '＋ Adicionar conexão'); add.onclick = () => { wrap.hidden = true; openProfileEdit(); }; conns.appendChild(add); }
+  if (conns.children.length) sec('Conexões', conns);
+  if (!self) {
+    const note = document.createElement('textarea'); note.className = 'fpNote'; note.rows = 2; note.maxLength = 200;
+    note.placeholder = 'Clique pra adicionar uma nota'; note.value = prefOf(code).note || '';
+    note.onchange = () => setPref(code, 'note', note.value.trim());
+    sec('Nota (visível apenas para você)', note);
+  }
+  left.appendChild(body);
+  const fx = fxLayer(p.effect); if (fx) left.appendChild(fx);
+  // ---- coluna da direita: abas ----
+  const right = el('div', 'fpRight');
+  const tabs = el('div', 'fpTabs'), panel = el('div', 'fpPanel');
+  const paint = () => {
+    tabs.querySelectorAll('button').forEach(b => b.classList.toggle('cur', b.dataset.t === fpTab));
+    panel.innerHTML = '';
+    if (fpTab === 'mural') {
+      const card = el('div', 'fpWidget');
+      const head = el('div', 'fpWHead'); const ht = el('div'); ht.appendChild(el('b', '', 'Jogos que eu gosto')); head.append(ht);
+      ht.appendChild(el('div', 'st', self ? 'Adicione até 20 jogos' : `${(p.games || []).length} jogo${(p.games || []).length === 1 ? '' : 's'}`));
+      if (self) { const add = el('button', 'ib', '＋'); add.title = 'Adicionar jogo'; add.onclick = () => pickGames('games'); head.appendChild(add); }
+      const grid = el('div', 'gGrid');
+      (p.games || []).forEach((g, i) => grid.appendChild(gameTile(g, self ? () => removeGame('games', i) : null)));
+      if (!grid.children.length) grid.appendChild(el('div', 'hint', self ? 'Nenhum jogo ainda. Clique em ＋ e procure na Steam.' : 'Nenhum jogo adicionado.'));
+      card.append(head, grid); panel.appendChild(card);
+    } else if (fpTab === 'ativ') {
+      const g = gameOf(code), r = roomOfCode(code);
+      if (g) {
+        const card = el('div', 'fpWidget');
+        const row = el('div', 'pgRow'); const info = el('div', 'info'); info.appendChild(el('div', 'pgName', g.name));
+        if (g.since) { const t = el('div', 'pgTime'); t.dataset.gsince = g.since; t.textContent = fmtElapsed(g.since); info.appendChild(t); }
+        row.append(el('div', 'pgIc', '🎮'), info);
+        card.append(el('div', 'fpLbl', 'Jogando'), row); panel.appendChild(card);
+      }
+      if (r) { const card = el('div', 'fpWidget'); card.append(el('div', 'fpLbl', 'Em voz'), el('div', 'pgName', '🔊 ' + r.name)); panel.appendChild(card); }
+      if (!g && !r) panel.appendChild(el('div', 'hint', 'Nenhuma atividade agora.'));
+    } else {
+      const card = el('div', 'fpWidget');
+      const head = el('div', 'fpWHead'); const ht = el('div'); ht.appendChild(el('b', '', 'Lista de desejos')); head.append(ht);
+      if (self) { const add = el('button', 'ib', '＋'); add.title = 'Adicionar jogo'; add.onclick = () => pickGames('wish'); head.appendChild(add); }
+      const grid = el('div', 'gGrid');
+      (p.wish || []).forEach((g, i) => grid.appendChild(gameTile(g, self ? () => removeGame('wish', i) : null)));
+      if (!grid.children.length) grid.appendChild(el('div', 'hint', 'Lista vazia.'));
+      card.append(head, grid); panel.appendChild(card);
+    }
+  };
+  for (const [k, label] of [['mural', 'Mural'], ['ativ', 'Atividade'], ['wish', 'Lista de desejos']]) {
+    const b = el('button', '', label); b.dataset.t = k; b.onclick = () => { fpTab = k; paint(); }; tabs.appendChild(b);
+  }
+  right.append(tabs, panel);
+  box.append(close, left, right);
+  wrap.appendChild(box);
+  wrap.onclick = e => { if (e.target === wrap) wrap.hidden = true; };
+  wrap.hidden = false;
+  paint();
+}
+function saveProfField(changes) {
+  const p = profOf(profile.code) || { id: 'p-' + profile.code, type: 'prof', code: profile.code, ts: Date.now() };
+  updateChannel({ ...p }, changes);
+  renderFriends(); drawn = { ch: null, ids: [] }; renderMsgs();
+}
+function removeGame(field, i) {
+  const list = [...(profOf(profile.code)?.[field] || [])]; list.splice(i, 1);
+  saveProfField({ [field]: list }); openFullProfile(profile.code);
+}
+// procurar jogo na Steam (o Concorde.exe busca; pelo site, digita o número do jogo na Steam)
+async function pickGames(field) {
+  const list = [...(profOf(profile.code)?.[field] || [])];
+  if (list.length >= 20) return toast('Máximo de 20 jogos.');
+  const wrap = el('div', 'modal'); wrap.id = 'gamePick';
+  const card = el('div', 'card');
+  const find = document.createElement('input'); find.placeholder = 'Nome do jogo na Steam (ex: Soulmask)';
+  const res = el('div', 'apList');
+  card.append(el('h2', '', field === 'wish' ? '🎁 Adicionar à lista de desejos' : '🎮 Adicionar jogo que eu gosto'), find, res);
+  const cancel = el('button', '', 'Fechar'); cancel.onclick = () => { wrap.remove(); openFullProfile(profile.code); };
+  card.appendChild(cancel);
+  wrap.appendChild(card); document.body.appendChild(wrap); find.focus();
+  let timer;
+  find.oninput = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = find.value.trim(); res.innerHTML = '';
+      if (q.length < 2) return;
+      let items = [];
+      try { const r = await fetch('/api/games?q=' + encodeURIComponent(q), { headers: { 'X-TelaCall': '1' } }); if (r.ok) items = (await r.json()).items || []; } catch {}
+      if (!items.length && /^\d+$/.test(q)) items = [{ id: +q, name: 'Jogo ' + q }];
+      if (!items.length) { res.appendChild(el('div', 'hint', (await isExeP) ? 'Nada encontrado.' : 'A busca de jogos funciona no Concorde instalado. Pelo site, digite o número do jogo na Steam.')); return; }
+      for (const it of items.slice(0, 10)) {
+        const row = el('div', 'apRow');
+        const img = document.createElement('img'); img.src = it.tiny_image || gameHeader(it.id); img.className = 'gSmall'; img.alt = '';
+        row.append(img, el('div', 'nm', it.name));
+        row.onclick = async () => {
+          const cur = [...(profOf(profile.code)?.[field] || [])];
+          if (cur.some(g => g.id === it.id)) return toast('Já está na lista.');
+          // imagem certinha do jogo (a Steam guarda os jogos novos num endereço com código)
+          let img = it.tiny_image || '';
+          try { const r = await fetch('/api/games?img=' + it.id, { headers: { 'X-TelaCall': '1' } }); if (r.ok) img = (await r.json()).img || img; } catch {}
+          cur.push({ id: it.id, name: String(it.name).slice(0, 60), ...(img ? { img } : {}) });
+          saveProfField({ [field]: cur.slice(0, 20) });
+          toast('Adicionado: ' + it.name); row.classList.add('last');
+        };
+        res.appendChild(row);
+      }
+    }, 300);
+  };
+}
+
+let editAvatar = '', editTheme = 'padrao', editDecor = '', editEffect = '', editNameStyle = '';
+function paintNameStyles() {
+  const box = $('peNameStyles'); box.innerHTML = '';
+  for (const [k, label] of [['', 'Padrão'], ...Object.entries(NAME_STYLES)]) {
+    const o = el('div', 'fxopt' + (k === editNameStyle ? ' on' : ''));
+    o.append(styledName(profile.name, k), el('span', 'nm', label));
+    o.onclick = () => { editNameStyle = k; paintNameStyles(); };
+    box.appendChild(o);
+  }
+}
 function paintFxPickers() {
   const mk = (boxId, list, cur, set, kind) => {
     const box = $(boxId); box.innerHTML = '';
@@ -2314,6 +2598,16 @@ function openProfileEdit() {
   const p = profOf(profile.code) || {};
   editAvatar = p.avatar || ''; editTheme = p.theme || 'padrao'; editDecor = p.decor || ''; editEffect = p.effect || '';
   $('peName').value = profile.name; $('peBio').value = p.bio || ''; $('pePron').value = p.pron || '';
+  $('peStatus').value = p.status || '';
+  $('peBannerOn').checked = !!p.banner; $('peBanner').value = p.banner || '#5865f2';
+  editNameStyle = p.nameStyle || '';
+  paintNameStyles();
+  const lk = $('peLinks'); lk.innerHTML = '';
+  for (const [t, info] of Object.entries(LINK_TYPES)) {
+    const row = el('label', 'peLink'); const inp = document.createElement('input'); inp.dataset.t = t;
+    inp.placeholder = `Link do seu ${info.name}`; inp.value = (p.links || []).find(l => l.t === t)?.url || '';
+    row.append(el('span', '', info.ic + ' ' + info.name), inp); lk.appendChild(row);
+  }
   const sw = $('peThemes'); sw.innerHTML = '';
   for (const [k, t] of Object.entries(THEMES)) {
     const s = el('div', 'sw' + (k === editTheme ? ' on' : ''), t.name);
@@ -2357,7 +2651,11 @@ $('peSave').onclick = () => {
     sendStatus();
   }
   const p = profOf(profile.code) || { id: 'p-' + profile.code, type: 'prof', code: profile.code, ts: Date.now() };
-  updateChannel({ ...p }, { bio: $('peBio').value.slice(0, 190), pron: $('pePron').value.trim().slice(0, 20), theme: editTheme, avatar: editAvatar, decor: editDecor, effect: editEffect });
+  const links = [...$('peLinks').querySelectorAll('input')].map(i => i.value.trim() && cleanLink({ t: i.dataset.t, url: i.value.trim() })).filter(Boolean);
+  const bad = [...$('peLinks').querySelectorAll('input')].find(i => i.value.trim() && !cleanLink({ t: i.dataset.t, url: i.value.trim() }));
+  if (bad) toast(`O link do ${LINK_TYPES[bad.dataset.t].name} não parece certo (precisa começar com https://...). Ficou de fora.`);
+  updateChannel({ ...p }, { bio: $('peBio').value.slice(0, 190), pron: $('pePron').value.trim().slice(0, 20), theme: editTheme, avatar: editAvatar, decor: editDecor, effect: editEffect,
+    status: $('peStatus').value.trim().slice(0, 60), banner: $('peBannerOn').checked ? $('peBanner').value : '', nameStyle: editNameStyle, links });
   $('profEdit').hidden = true;
   renderSelf(); renderFriends(); drawn = { ch: null, ids: [] }; renderMsgs();
   if (room) renderMembers();
@@ -2880,7 +3178,7 @@ function renderDmProfile(code) {
   const p = profOf(code);
   if (p?.ts) { body.append(el('div', 'pcLbl', 'Membro desde'), el('div', 'pcBio', new Date(p.ts).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }))); }
   const full = el('button', '', 'Ver Perfil Completo'); full.style.cssText = 'width:100%;margin-top:16px';
-  full.onclick = () => openProfile(code);
+  full.onclick = () => openFullProfile(code);
   body.appendChild(full);
 }
 function renderFriendsHome() {
@@ -3265,17 +3563,30 @@ function chime(notes, vol = 0.22) {
     }
   } catch {}
 }
-const SND = {
-  join:   force => (force || settings.sndCall) && chime([[587, 0, 0.18], [880, 0.08, 0.28], [1175, 0.08, 0.28, 'triangle']]),   // sobe: entrou
-  leave:  () => settings.sndCall && chime([[880, 0, 0.18], [587, 0.08, 0.28], [440, 0.08, 0.28, 'triangle']]),    // desce: saiu
-  mute:   () => settings.sndMute && chime([[520, 0, 0.07], [390, 0.06, 0.12]], 0.16),
-  unmute: () => settings.sndMute && chime([[390, 0, 0.07], [520, 0.06, 0.12]], 0.16),
-  deaf:   () => settings.sndMute && chime([[440, 0, 0.08], [330, 0.06, 0.08], [247, 0.12, 0.14]], 0.16),
-  undeaf: () => settings.sndMute && chime([[247, 0, 0.08], [330, 0.06, 0.08], [440, 0.12, 0.14]], 0.16),
+// cada som pode ser ligado/desligado em Configurações → Sons (igual Discord), com "Prévia do som"
+const SOUNDS = {
+  mute:       ['Desativar áudio',          () => chime([[520, 0, 0.07], [390, 0.06, 0.12]], 0.16)],
+  unmute:     ['Reativar áudio',           () => chime([[390, 0, 0.07], [520, 0.06, 0.12]], 0.16)],
+  deaf:       ['Silenciar',                () => chime([[440, 0, 0.08], [330, 0.06, 0.08], [247, 0.12, 0.14]], 0.16)],
+  undeaf:     ['Dessilenciar',             () => chime([[247, 0, 0.08], [330, 0.06, 0.08], [440, 0.12, 0.14]], 0.16)],
+  camOn:      ['Câmera ligada',            () => chime([[660, 0, 0.1], [990, 0.07, 0.16, 'triangle']], 0.18)],
+  camOff:     ['Câmera desligada',         () => chime([[990, 0, 0.1], [660, 0.07, 0.16, 'triangle']], 0.18)],
+  disconnect: ['Voz desconectada',         () => chime([[700, 0, 0.12], [520, 0.1, 0.14], [350, 0.2, 0.3, 'triangle']])],
+  join:       ['Usuário entrou',           () => chime([[587, 0, 0.18], [880, 0.08, 0.28], [1175, 0.08, 0.28, 'triangle']])],
+  leave:      ['Usuário saiu',             () => chime([[880, 0, 0.18], [587, 0.08, 0.28], [440, 0.08, 0.28, 'triangle']])],
+  moved:      ['Usuário movido',           () => chime([[523, 0, 0.1], [784, 0.09, 0.1], [523, 0.18, 0.18]], 0.2)],
+  ringOut:    ['Toque de chamada realizada', () => chime([[440, 0, 0.35], [554, 0, 0.35], [440, 0.5, 0.35], [554, 0.5, 0.35]], 0.12)],
+  streamStart:['Transmissão iniciada',     () => chime([[523, 0, 0.12], [659, 0.1, 0.12], [784, 0.2, 0.12], [1047, 0.3, 0.3, 'triangle']], 0.2)],
+  streamStop: ['Transmissão interrompida', () => chime([[1047, 0, 0.12], [784, 0.1, 0.12], [659, 0.2, 0.12], [523, 0.3, 0.3, 'triangle']], 0.2)],
+  viewerJoin: ['Espectador entrou',        () => chime([[784, 0, 0.1], [1047, 0.08, 0.18]], 0.16)],
+  viewerLeave:['Espectador saiu',          () => chime([[1047, 0, 0.1], [784, 0.08, 0.18]], 0.16)],
+  msg:        ['Mensagem nova',            () => blip(true)],
 };
+const sndOn = k => settings.snd?.[k] !== false;
+const SND = Object.fromEntries(Object.entries(SOUNDS).map(([k, [, play]]) => [k, force => (force === true || sndOn(k)) && play()]));
 
-function blip() {
-  if (!settings.sndMsg || !settings.sndVol) return;
+function blip(force) {
+  if ((!force && !sndOn('msg')) || !settings.sndVol) return;
   try {
     actx = actx || newCtx(); actx.resume();
     const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
@@ -3306,6 +3617,7 @@ async function callFriend(code) {
   if (!room) await enterCall({ id: randomCode(8), name: 'Call do ' + profile.name });
   o.conn.send({ t: 'invite', room: statusMsg().room });
   toast(`Chamando ${friendName(code)}...`);
+  SND.ringOut();
 }
 
 let ringTimer = null, ringTimeout = null;
@@ -3365,7 +3677,7 @@ async function enterCall(r) {
 
 function leaveCall() {
   if (!room) return;
-  SND.leave();
+  SND.disconnect();
   if (screen) stopShare();
   for (const m of [...members.values()]) dropMember(m.id, true);
   members.clear();
@@ -3488,6 +3800,7 @@ function setupCallData(conn) {
     conn.send({ t: 'peers', list: [...members.keys()].filter(k => k !== conn.peer) });
     // câmera vai direto; tela só pra quem clicar em "Assistir transmissão" (igual Discord)
     if (screen) screenKind === 'cam' ? sendScreen(conn.peer) : conn.send({ t: 'live', on: true });
+    if (screen && screenKind === 'screen') setTimeout(() => sendLivePreview(conn.peer), 1500);
   });
   conn.on('data', msg => onCallData(conn.peer, msg));
   // se chegou uma conexão repetida, fechar a antiga não pode tirar a pessoa da call
@@ -3509,15 +3822,24 @@ function onCallData(id, msg) {
   } else if (msg.t === 'mute') {
     m.muted = !!msg.muted; renderMembers();
   } else if (msg.t === 'screen-stop') {
-    m.screenIn = null; m.live = false; m.watch = false; hideScreen(id); sendStatus();
+    if (m.live) SND.streamStop();
+    m.screenIn = null; m.live = false; m.watch = false; m.preview = ''; hideScreen(id); sendStatus();
   } else if (msg.t === 'live') {
     // a pessoa começou a transmitir a tela: aparece o cartão "Assistir transmissão"
     const was = m.live; m.live = !!msg.on;
-    if (m.live && !was) { toast(`📺 ${m.name || 'Alguém'} está ao vivo`); logEvent(m.name || '...', 'começou a transmitir a tela'); }
+    if (m.live && !was) { toast(`📺 ${m.name || 'Alguém'} está ao vivo`); logEvent(m.name || '...', 'começou a transmitir a tela'); SND.streamStart(); }
     if (m.live && pendingWatch === id) { pendingWatch = null; setWatch(id, true); }
     renderMembers(); sendStatus();
+  } else if (msg.t === 'preview') {
+    // fotinho da live pra quem ainda não entrou (só imagem JPEG pequena)
+    if (typeof msg.img === 'string' && msg.img.length < 80000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(msg.img)) {
+      m.preview = msg.img;
+      const card = document.querySelector(`.livecard[data-live="${CSS.escape(id)}"] .lcPrev`);
+      if (card) card.style.backgroundImage = `url("${m.preview}")`; else renderLiveCards();
+    }
   } else if (msg.t === 'watch') {
     // alguém entrou ou saiu da minha live
+    if (!!msg.on !== !!m.watching && screen && screenKind === 'screen') msg.on ? SND.viewerJoin() : SND.viewerLeave();
     m.watching = !!msg.on;
     if (m.watching && screen && screenKind === 'screen') { if (!m.screenOut) sendScreen(id); }
     else if (!m.watching && screenKind === 'screen') { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
@@ -3598,8 +3920,18 @@ setInterval(() => {
     let sum = 0; for (const v of buf) { const x = (v - 128) / 128; sum += x * x; }
     const speaking = !(t === me ? micMuted : t.muted) && Math.sqrt(sum / buf.length) > 0.03;
     document.querySelectorAll(`[data-pid="${CSS.escape(t.id)}"]`).forEach(e => e.classList.toggle('speaking', speaking));
+    if (speaking) lastTalk = Date.now();
   }
+  // atenuação: enquanto alguém da call fala, a live que você assiste abaixa (e volta suave depois)
+  const duckOn = settings.duck && Date.now() - lastTalk < 600;
+  const target = duckOn ? 1 - settings.duckAmt / 100 : 1;
+  duckLevel += (target - duckLevel) * (target < duckLevel ? 0.6 : 0.15);
+  document.querySelectorAll('.screen').forEach(tile => {
+    const v = tile.querySelector('video'); if (!v || v.dataset.self) return;
+    v.volume = Math.min(1, (streamVol.get(tile.dataset.sid) ?? 1) * outGain() * duckLevel);
+  });
 }, 120);
+let lastTalk = 0, duckLevel = 1;
 
 function setMic(v) {
   micMuted = v;
@@ -3786,7 +4118,19 @@ function paintSettings() {
   $('sensSlider').closest('.sensw').classList.toggle('auto', settings.autoSens);
   $('optNs').checked = settings.ns; $('optEc').checked = settings.ec; $('optAgc').checked = settings.agc;
   $('sQuality').value = $('quality').value; $('sShareAudio').checked = $('shareAudio').checked; $('sCutOwn').checked = settings.cutOwn;
-  $('optSndCall').checked = settings.sndCall; $('optSndMute').checked = settings.sndMute; $('optSndMsg').checked = settings.sndMsg; $('sndVol').value = settings.sndVol;
+  $('sndVol').value = settings.sndVol;
+  $('sLivePrev').checked = settings.livePreview; $('sDuck').checked = settings.duck; $('sDuckAmt').value = settings.duckAmt;
+  // um interruptor por som, com "Prévia do som" (igual Discord)
+  const sl = $('sndList'); sl.innerHTML = '';
+  for (const [k, [label]] of Object.entries(SOUNDS)) {
+    const row = el('div', 'tog sndRow');
+    const info = el('div'); info.appendChild(el('b', '', label));
+    const prev = el('a', 'sndPrev', 'Prévia do som'); prev.href = '#'; prev.onclick = e => { e.preventDefault(); SND[k](true); };
+    info.appendChild(el('div')).appendChild(prev);
+    const sw = document.createElement('input'); sw.type = 'checkbox'; sw.className = 'tsw'; sw.checked = sndOn(k);
+    sw.onchange = () => { settings.snd = { ...(settings.snd || {}), [k]: sw.checked }; save('settings', settings); };
+    row.append(info, sw); sl.appendChild(row);
+  }
   const box = $('acctBox'); box.innerHTML = '';
   const row = (k, v, btn, fn) => {
     const r = el('div', 'row'); const d = el('div'); d.append(el('div', 'k', k), el('div', '', v)); r.appendChild(d);
@@ -3837,8 +4181,10 @@ for (const [id, key] of [['optNs', 'ns'], ['optEc', 'ec'], ['optAgc', 'agc']])
 $('sQuality').onchange = () => { $('quality').value = $('sQuality').value; $('quality').onchange(); };
 $('sCutOwn').onchange = () => { settings.cutOwn = $('sCutOwn').checked; save('settings', settings); if (screen && screenKind === 'screen') toast('Vale a partir da próxima vez que você compartilhar a tela.'); };
 $('sShareAudio').onchange = () => { $('shareAudio').checked = $('sShareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
-for (const [id, key] of [['optSndCall', 'sndCall'], ['optSndMute', 'sndMute'], ['optSndMsg', 'sndMsg']])
-  $(id).onchange = () => { settings[key] = $(id).checked; save('settings', settings); };
+$('sLivePrev').onchange = () => { settings.livePreview = $('sLivePrev').checked; save('settings', settings); };
+$('sDuck').onchange = () => { settings.duck = $('sDuck').checked; save('settings', settings); };
+$('sDuckAmt').oninput = () => { settings.duckAmt = +$('sDuckAmt').value; save('settings', settings); };
+$('sAdvBtn').onclick = () => { const b = $('sAdv'); b.hidden = !b.hidden; $('sAdvBtn').textContent = b.hidden ? '⌄' : '⌃'; };
 $('sndVol').oninput = () => { settings.sndVol = +$('sndVol').value; save('settings', settings); };
 $('sndVol').onchange = () => SND.join(true);
 
@@ -3903,6 +4249,16 @@ function setWatch(id, on) {
   else { showView({ type: 'call' }); toast(`Entrando na live de ${m.name}...`); }
   renderMembers();
 }
+// prévia da minha live: a cada 10 s manda uma fotinho pequena pra quem ainda não está assistindo
+function sendLivePreview(onlyId) {
+  if (!screen || screenKind !== 'screen' || !settings.livePreview) return;
+  const v = document.querySelector('.screen[data-sid="me"] video'); if (!v || !v.videoWidth) return;
+  const c = document.createElement('canvas'); c.width = 384; c.height = Math.round(384 * v.videoHeight / v.videoWidth);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const img = c.toDataURL('image/jpeg', 0.6);
+  for (const m of members.values()) if (m.data?.open && !m.watching && (!onlyId || m.id === onlyId)) m.data.send({ t: 'preview', img });
+}
+setInterval(sendLivePreview, 10000);
 // clicou no AO VIVO na lista de canais
 async function watchFrom(pid, r, people) {
   if (room?.id === r.id) { if (members.get(pid)?.live) setWatch(pid, true); else pendingWatch = pid; return; }
@@ -3917,7 +4273,8 @@ function renderLiveCards() {
     const card = el('div', 'screen livecard'); card.dataset.live = m.id;
     const code = codeOf(m.id), av = avatar(m.name, undefined, code); av.classList.add('lcAv');
     const b = el('button', 'primary', '▶ Assistir transmissão'); b.onclick = () => setWatch(m.id, true);
-    card.append(av, el('div', 'lcName', m.name), el('div', 'lcSub', '🔴 está transmitindo a tela'), b);
+    const prev = el('div', 'lcPrev'); if (m.preview) prev.style.backgroundImage = `url("${m.preview}")`;
+    card.append(prev, av, el('div', 'lcName', m.name), el('div', 'lcSub', '🔴 está transmitindo a tela'), b);
     $('screens').appendChild(card);
   }
   $('empty').hidden = !!document.querySelector('.screen');
@@ -3936,6 +4293,7 @@ async function startCam() {
   vt.onended = stopShare;
   showScreen('me', screen);
   for (const id of members.keys()) sendScreen(id);
+  SND.camOn();
   updateButtons(); renderMembers();
 }
 
@@ -4076,6 +4434,8 @@ async function beginShare(audioSrc) {
   // avisa que está ao vivo; a tela vai pra quem clicar em "Assistir transmissão"
   for (const m of members.values()) { m.watching = false; if (m.screenOut) { try { m.screenOut.close(); } catch {} m.screenOut = null; } }
   broadcast({ t: 'live', on: true });
+  SND.streamStart();
+  setTimeout(() => sendLivePreview(), 1500);
   sendStatus();
   if (sysAudio && !screen.getAudioTracks().length) toast('Sem som: escolha "Tela inteira" e deixe ligado "Compartilhar áudio do sistema" na janelinha.');
   updateButtons(); renderMembers();
@@ -4083,6 +4443,7 @@ async function beginShare(audioSrc) {
 
 function stopShare() {
   if (!screen) return;
+  screenKind === 'cam' ? SND.camOff() : SND.streamStop();
   screen.getTracks().forEach(t => t.stop());
   stopAppAudio();
   screen = null;
