@@ -294,6 +294,9 @@
   .screen .fs{position:absolute;right:8px;top:8px;padding:4px 9px;background:#000a;border:0}
   .screen .q{position:absolute;left:8px;top:8px;background:#000a;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:600}
   .screen .q.hd{color:#57f287}
+  .screen .q.pick{cursor:pointer}
+  .screen .q.pick::after{content:' ▾';opacity:.7}
+  .screen .q.pick:hover{background:#000d}
   .callhead .count{font-weight:400;color:var(--muted);font-size:14px}
   #members{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
   .member{flex-direction:column;align-items:center;text-align:center;padding:14px 10px;gap:6px;border:2px solid transparent}
@@ -1068,7 +1071,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 28;
+const APP_VERSION = 29;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -4025,10 +4028,14 @@ function onCallData(id, msg) {
       const card = document.querySelector(`.livecard[data-live="${CSS.escape(id)}"] .lcPrev`);
       if (card) card.style.backgroundImage = `url("${m.preview}")`; else renderLiveCards();
     }
+  } else if (msg.t === 'wantq') {
+    // quem assiste mudou a qualidade que quer receber: ajusta só o envio pra essa pessoa
+    if (WANT_Q[msg.q]) { m.wantQ = msg.q; if (m.screenOut) tune(m.screenOut); }
   } else if (msg.t === 'watch') {
     // alguém entrou ou saiu da minha live
     if (!!msg.on !== !!m.watching && screen && screenKind === 'screen') msg.on ? SND.viewerJoin() : SND.viewerLeave();
     m.watching = !!msg.on;
+    if (WANT_Q[msg.q]) m.wantQ = msg.q;
     if (m.watching && screen && screenKind === 'screen') { if (!m.screenOut) sendScreen(id); }
     else if (!m.watching && screenKind === 'screen') { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
     renderMembers();
@@ -4393,8 +4400,26 @@ $('optGame').onchange = () => { settings.showGame = $('optGame').checked; save('
 $('sndVol').onchange = () => SND.join(true);
 
 // ---------- compartilhar tela ----------
-function tune(call) {
+// qualidade que cada um quer RECEBER (escolhe clicando no selo da live que está assistindo)
+const WANT_Q = {
+  orig:      { label: '⭐ Original (como a pessoa transmite)' },
+  '1080p60': { label: 'Full HD 1080p 60fps', h: 1080, fps: 60 }, '1080p30': { label: 'Full HD 1080p 30fps', h: 1080, fps: 30 },
+  '720p60':  { label: '720p 60fps', h: 720, fps: 60 },           '720p30':  { label: '720p 30fps (internet fraca)', h: 720, fps: 30 },
+};
+const wantQ = () => WANT_Q[load('wantQ', 'orig')] ? load('wantQ', 'orig') : 'orig';
+// o que mandar pra um amigo: o que eu transmito, ou menos se ele pediu menos (nunca mais que o meu)
+function sendQFor(call) {
   const q = curQ();
+  const m = [...members.values()].find(x => x.screenOut === call);
+  const w = WANT_Q[m?.wantQ];
+  if (!w || !w.h) return { kbps: q.kbps, fps: q.fps, scale: 1 };
+  const srcH = screen?.getVideoTracks()[0]?.getSettings().height || q.h;
+  const fps = Math.min(q.fps, w.fps), scale = Math.max(1, srcH / w.h);
+  const key = (scale > 1 ? w.h : q.h) + 'p' + fps;
+  return { kbps: Math.min(q.kbps, QUALITY[key]?.kbps || q.kbps), fps, scale };
+}
+function tune(call) {
+  const q = sendQFor(call);
   setAudioBitrate(call, STREAM_KBPS);
   setTimeout(() => lockFramerate(call), 300); // separado: se o navegador recusar, o resto continua valendo
   try {
@@ -4404,7 +4429,7 @@ function tune(call) {
       if (!prm.encodings || !prm.encodings.length) prm.encodings = [{}];
       prm.encodings[0].maxBitrate = q.kbps * 1000;
       prm.encodings[0].maxFramerate = q.fps;
-      prm.encodings[0].scaleResolutionDownBy = 1; // não reduzir a resolução
+      prm.encodings[0].scaleResolutionDownBy = q.scale; // 1 = a resolução que eu transmito; mais = o amigo pediu menor
       prm.encodings[0].priority = prm.encodings[0].networkPriority = 'high';
       s.setParameters(prm).catch(() => {
         delete prm.encodings[0].priority; delete prm.encodings[0].networkPriority;
@@ -4453,7 +4478,7 @@ const livePrevs = new Map(); // código do amigo -> { img, ts }: prévia da live
 function setWatch(id, on) {
   const m = members.get(id); if (!m) return;
   m.watch = on;
-  if (m.data?.open) m.data.send({ t: 'watch', on });
+  if (m.data?.open) m.data.send({ t: 'watch', on, q: wantQ() });
   if (!on) { try { m.screenIn?.close(); } catch {} m.screenIn = null; hideScreen(id); }
   else { showView({ type: 'call' }); toast(`Entrando na live de ${m.name}...`); }
   renderMembers();
@@ -4723,6 +4748,12 @@ function showScreen(id, stream) {
   const toggleFs = () => document.fullscreenElement ? document.exitFullscreen() : tile.requestFullscreen();
   fs.onclick = toggleFs; v.ondblclick = toggleFs;
   const q = el('div', 'q', '...'); q.title = 'Qualidade que está chegando agora';
+  // quem assiste escolhe a qualidade que recebe (igual YouTube): clica no selo
+  if (!self && members.get(id)?.screenKind !== 'cam') {
+    q.classList.add('pick'); q.title = 'Clique pra escolher a qualidade que você recebe';
+    q.onclick = e => popMenu(e, () => Object.entries(WANT_Q).map(([k, w]) => ({ label: w.label, check: wantQ() === k, keep: true,
+      fn: () => { save('wantQ', k); for (const m of members.values()) if (m.data?.open && m.screenIn) m.data.send({ t: 'wantq', q: k }); toast('Qualidade: ' + w.label); } })));
+  }
   tile.append(v, lab, fs, q);
   if (!self) {
     // som da transmissão: cada um muta ou ajusta só pra si, sem mexer na voz da pessoa
