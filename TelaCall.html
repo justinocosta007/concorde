@@ -1062,6 +1062,7 @@
         </div>
         <div class="tog"><div><b>Mostrar o jogo que estou jogando</b><div class="tip">Os amigos veem "Jogando ..." (só o nome do jogo aberto). Desligado, ninguém vê.</div></div><input type="checkbox" class="tsw" id="optGame"></div>
         <div class="tog"><div><b>Atualização</b><div class="tip" id="sysInfo"></div></div><button id="btnCheckUpd" style="white-space:nowrap;flex-shrink:0">🔄 Buscar atualização</button></div>
+        <div class="tog"><div><b>Conexão</b><div class="tip" id="netInfo"></div></div><button id="btnReconnect" style="white-space:nowrap;flex-shrink:0">🔌 Reconectar tudo</button></div>
       </section>
     </div>
   </div>
@@ -1071,7 +1072,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 29;
+const APP_VERSION = 30;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1079,6 +1080,26 @@ const ICE = { iceServers: [
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:global.stun.twilio.com:3478' },
 ]};
+// Relay (TURN): quando a internet de um dos dois bloqueia a ligação direta (4G, NAT de operadora, alguns roteadores),
+// a conexão passa por ele. Os dados ficam no site (turn.json) pra dar pra trocar sem lançar versão nova.
+// Sem o arquivo, segue só a ligação direta, como antes.
+const TURN_URL = 'https://justinocosta007.github.io/concorde/turn.json';
+let turnOn = false;
+function useTurn(list) {
+  if (!Array.isArray(list)) return false;
+  const ok = list.filter(s => s && [].concat(s.urls || []).length && [].concat(s.urls).every(u => typeof u === 'string' && /^turns?:/.test(u)))
+    .slice(0, 4).map(s => ({ urls: s.urls, username: String(s.username || ''), credential: String(s.credential || '') }));
+  if (!ok.length) return false;
+  ICE.iceServers = ICE.iceServers.filter(s => ![].concat(s.urls).some(u => /^turns?:/.test(u))).concat(ok);
+  return (turnOn = true);
+}
+try { useTurn(JSON.parse(localStorage.getItem('tc-turn') || 'null')); } catch {}
+// turn.json pode ter a lista pronta ({ "iceServers": [...] }) ou um link que gera as senhas ({ "url": "https://..." }, Metered)
+fetch(TURN_URL + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(async j => {
+  if (j && typeof j.url === 'string' && /^https:\/\//.test(j.url)) j = await (await fetch(j.url, { cache: 'no-store' })).json();
+  const list = j && (j.iceServers || j);
+  if (useTurn(list)) localStorage.setItem('tc-turn', JSON.stringify(list));
+}).catch(() => {});
 const QUALITY = {
   // teto por amigo assistindo. Era 18/10 Mbps: imagem linda mas engasgava quando o upload não dava conta
   '1440p60': { w: 2560, h: 1440, fps: 60, kbps: 14000 }, // Quad HD: uns 15 Mbps de upload por amigo
@@ -1373,7 +1394,8 @@ function startLookup() {
 }
 function findUser(u) {
   return new Promise(res => {
-    const conn = peer.connect(PREFIX + 'u-' + u, { metadata: { kind: 'lookup' } });
+    const conn = dial(PREFIX + 'u-' + u, { metadata: { kind: 'lookup' } });
+    if (!conn) return res(null);
     const t = setTimeout(() => { try { conn.close(); } catch {} res(null); }, 9000);
     conn.on('data', m => {
       if (m?.t !== 'whois' || !/^[A-Z0-9]{6}$/.test(m.code)) return;
@@ -1396,9 +1418,84 @@ function changeUser() {
 }
 const fhelloMsg = code => ({ t: 'fhello', name: profile.name, user: profile.user, friend: isFriend(code) });
 
+// ---------- saúde das conexões ----------
+// O navegador só deixa uma página ter ~500 conexões (RTCPeerConnection), e uma conexão só sai da conta depois de
+// fechada E recolhida da memória. O PeerJS não fecha a tentativa quando o outro está offline, e o app tentava de
+// novo a cada 10 s: com o tempo batia no limite e o app ficava "online" sem conseguir ver ninguém, entrar em call
+// ou abrir live (só fechar e abrir resolvia). Agora toda tentativa que não conecta em 20 s é fechada, quem está
+// offline é procurado cada vez mais devagar e, se mesmo assim faltar conexão, o app se reinicia sozinho e volta pra call.
+let pcLive = 0;
+if (window.RTCPeerConnection && typeof FinalizationRegistry === 'function') {
+  const Native = window.RTCPeerConnection, gone = new FinalizationRegistry(() => { pcLive--; });
+  window.RTCPeerConnection = class extends Native {
+    constructor(...a) { super(...a); pcLive++; gone.register(this, 0); }
+  };
+}
+const connsOf = p => { const out = []; if (p && !p.destroyed && p._connections) for (const l of p._connections.values()) out.push(...l); return out; };
+// a conexão está de pé? (dados: canal aberto; voz/tela: caminho de rede conectado)
+function connUp(c) {
+  const pc = c.peerConnection; if (!pc) return false;
+  if (c.type === 'data') return !!c.open;
+  return pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed';
+}
+// ligação de voz/tela ainda servindo (conectada ou terminando de conectar)
+const callAlive = c => { const s = c?.peerConnection?.connectionState; return !!c && (s === 'connected' || s === 'connecting' || s === 'new'); };
+function sweepConns(hard) {
+  const now = Date.now();
+  for (const c of [...connsOf(peer), ...connsOf(lookupPeer)]) {
+    if (!c._born) c._born = now;
+    if (connUp(c)) { c._up = now; continue; }
+    const st = c.peerConnection?.connectionState;
+    if (st === 'failed' || st === 'closed' || now - (c._up || c._born) > (hard ? 4000 : 20000)) { try { c.close(); } catch {} }
+  }
+}
+setInterval(() => sweepConns(false), 5000);
+// o servidor avisou que a pessoa não está online: fecha na hora as tentativas presas com ela
+function dropDial(id) { for (const c of connsOf(peer)) if (c.peer === id && !connUp(c)) { try { c.close(); } catch {} } }
+// peer.connect / peer.call que não derrubam o resto quando o navegador recusa
+function dial(id, opts) { try { return peer.connect(id, opts); } catch (e) { pcFull(e); return null; } }
+function ring(id, stream, opts) { try { return peer.call(id, stream, opts); } catch (e) { pcFull(e); return null; } }
+let healing = false;
+function pcFull(e) {
+  if (!/so many/i.test(String(e?.message || e))) return;
+  sweepConns(true);
+  if (healing) return; healing = true;
+  // o navegador solta as fechadas em poucos segundos; se não soltar, reinicia o app (e volta pra call sozinho)
+  setTimeout(() => { healing = false; try { new RTCPeerConnection().close(); } catch { restartApp(); } }, 15000);
+}
+function restartApp() {
+  if (room) sessionStorage.setItem('tc-rejoin', JSON.stringify({ id: room.id, name: room.name, people: [...members.keys()], at: Date.now() }));
+  try { peer?.destroy(); lookupPeer?.destroy(); } catch {} // fecha tudo antes: o navegador solta mais rápido
+  location.reload();
+}
+// O PeerJS testa o navegador uma vez só, quando carrega. Se nessa hora ainda não tinha conexão sobrando (logo depois
+// de reiniciar por falta delas), ele acharia que o navegador "não suporta" pra sempre. Aqui testa de novo.
+function fixSupports() {
+  const s = window.peerjs?.util?.supports;
+  if (!s || (s.data && s.audioVideo)) return true;
+  try {
+    const pc = new RTCPeerConnection(), dc = pc.createDataChannel('t', { ordered: true });
+    Object.assign(s, { audioVideo: true, data: true, reliable: !!dc.ordered, binaryBlob: true });
+    dc.close(); pc.close(); return true;
+  } catch { return false; }
+}
+// depois de reiniciar sozinho: volta pra call em que estava
+function rejoinAfterRestart() {
+  let rj = null; try { rj = JSON.parse(sessionStorage.getItem('tc-rejoin') || 'null'); } catch {}
+  sessionStorage.removeItem('tc-rejoin');
+  if (rj && Date.now() - rj.at < 120000 && !room && typeof rj.id === 'string')
+    setTimeout(() => { if (!room) joinRoom({ id: rj.id, name: String(rj.name || 'Call') }, (rj.people || []).filter(x => codeOf(x))).catch(() => {}); }, 2500);
+}
+
 function startPeer() {
-  peer = new Peer(PREFIX + profile.code, { config: ICE });
-  peer.on('open', () => { setStatus('online'); pollFriends(); });
+  if (!fixSupports()) { setStatus('preparando a conexão...'); setTimeout(startPeer, 2000); return; }
+  const p = peer = new Peer(PREFIX + profile.code, { config: ICE });
+  let again = false;
+  // recria do zero (id preso no servidor, ou o PeerJS desistiu sozinho depois de um erro do servidor)
+  const restart = ms => { if (again || p !== peer) return; again = true; try { p.destroy(); } catch {} setTimeout(() => { if (p === peer) startPeer(); }, ms); };
+  let first = true;
+  p.on('open', () => { setStatus('online'); backoff.clear(); attempts.clear(); pollFriends(); if (first) { first = false; rejoinAfterRestart(); } });
+  p.on('close', () => restart(5000));
   peer.on('connection', conn => {
     const kind = conn.metadata?.kind;
     if (kind === 'friend') setupFriendConn(conn);
@@ -1424,18 +1521,25 @@ function startPeer() {
       attachAudio(call);
     }
   });
-  peer.on('error', e => {
+  p.on('error', e => {
     if (e.type === 'unavailable-id') {
       // aba antiga ainda registrada no servidor, ou o app aberto em outra janela
       setStatus('já aberto em outra janela? tentando de novo...');
-      peer.destroy(); setTimeout(startPeer, 6000); return;
+      restart(6000); return;
     }
-    if (e.type === 'peer-unavailable') return; // amigo offline: normal
+    if (e.type === 'browser-incompatible') { restart(3000); return; } // navegador sem conexão sobrando: tenta de novo
+    if (e.type === 'peer-unavailable') { // amigo offline: normal, mas fecha a tentativa (senão ela fica presa pra sempre)
+      const id = String(e.message || '').match(/peer (\S+)/)?.[1];
+      if (id) dropDial(id);
+      return;
+    }
     if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(e.type)) setStatus('sem conexão, tentando...');
   });
-  peer.on('disconnected', () => {
+  p.on('disconnected', () => {
+    if (p !== peer || p.destroyed) return;
     setStatus('reconectando...');
-    setTimeout(() => { if (!peer.destroyed && peer.disconnected) peer.reconnect(); }, 2000);
+    const tryAgain = () => { if (p === peer && !p.destroyed && p.disconnected) { try { p.reconnect(); } catch { restart(3000); } } };
+    setTimeout(tryAgain, 2000);
   });
 }
 
@@ -1453,14 +1557,19 @@ $('meInfo').onclick = () => openProfile(profile.code);
 $('meInfo').oncontextmenu = e => memberMenu(profile.code, e);
 
 // ---------- amigos ----------
+// amigo offline: tenta de novo cada vez mais devagar (9 s, 18 s, 36 s... até 90 s). Quando ele abre o Concorde,
+// é o app dele que liga pra cá na hora, então ninguém demora pra aparecer.
+const backoff = new Map(); // code -> espera até a próxima tentativa
 function pollFriends() {
   if (!peer || !peer.open) return;
   const now = Date.now();
   for (const f of friends) {
-    if (online.get(f.code)?.conn?.open) continue;
-    if (now - (attempts.get(f.code) || 0) < 9000) continue;
-    attempts.set(f.code, now);
-    setupFriendConn(peer.connect(PREFIX + f.code, { reliable: true, metadata: { kind: 'friend' } }));
+    if (online.get(f.code)?.conn?.open) { backoff.delete(f.code); continue; }
+    const wait = backoff.get(f.code) || 9000;
+    if (now - (attempts.get(f.code) || 0) < wait) continue;
+    attempts.set(f.code, now); backoff.set(f.code, Math.min(wait * 2, 90000));
+    const c = dial(PREFIX + f.code, { reliable: true, metadata: { kind: 'friend' } });
+    if (c) setupFriendConn(c);
   }
 }
 setInterval(pollFriends, 10000);
@@ -1536,7 +1645,7 @@ function onFriendData(code, conn, m) {
     if (room && o.room?.id === room.id) {
       adoptSince(o.room.since);
       // dois grupos entraram no mesmo canal sem se ver: junta (só o de id menor liga, pra não duplicar)
-      for (const x of o.room.members) if (!members.has(x.id) && peer.id < x.id) connectTo(x.id);
+      for (const x of o.room.members) meetInRoom(x.id);
     }
     renderFriends(); renderRooms();
   } else if (!isFriend(code) || !o?.theyAdded) {
@@ -1593,7 +1702,7 @@ function addFriend(code, name, user) {
     toast(`Você e ${req.name} agora são amigos!`);
   } else {
     toast('Pedido enviado! Seu amigo precisa estar com o Concorde aberto pra aceitar.');
-    attempts.delete(code); pollFriends();
+    attempts.delete(code); backoff.delete(code); pollFriends();
   }
   renderFriends();
 }
@@ -1754,9 +1863,11 @@ function onPresence(m) {
       const rid = typeof x.rid === 'string' && /^[\w-]{1,20}$/.test(x.rid) ? x.rid : '';
       presence.set(x.code, { name: cleanName(x.name) || x.code, user: cleanUser(x.user), room: String(x.room || '').slice(0, 30), rid, since: Number(x.since) || 0, seen });
       rememberMember(x.code, cleanName(x.name), cleanUser(x.user));
+      // amigo que outro amigo está vendo online agora: não espera o tempo longo pra tentar de novo
+      if (isFriend(x.code) && age < 20000 && (backoff.get(x.code) || 0) > 30000) backoff.set(x.code, 30000);
       // está no mesmo canal que eu e ainda não nos conectamos: liga (só o de id menor, pra não duplicar)
       const pid = PREFIX + x.code;
-      if (room && rid === room.id && !members.has(pid) && peer.id < pid && !isBanned(x.code)) connectTo(pid);
+      if (room && rid === room.id) meetInRoom(pid);
       if (room && rid === room.id) adoptSince(x.since);
     }
   }
@@ -3978,8 +4089,27 @@ function connectTo(id) {
   if (!peer || !room || id === peer.id || !codeOf(id)) return;
   const m = getMember(id);
   if (m.data) return;
-  setupCallData(peer.connect(id, { reliable: true, metadata: { kind: 'call', room: room.id } }));
-  attachAudio(peer.call(id, mic, { metadata: { type: 'audio' }, sdpTransform: voiceSdp }));
+  const d = dial(id, { reliable: true, metadata: { kind: 'call', room: room.id } });
+  if (!d) { members.delete(id); renderMembers(); return; }
+  d._mine = true;
+  setupCallData(d);
+  const a = ring(id, mic, { metadata: { type: 'audio' }, sdpTransform: voiceSdp });
+  if (a) attachAudio(a, true);
+}
+// alguém está no mesmo canal que eu e ainda não nos conectamos: liga. Antes só quem tinha o id menor ligava, e se
+// justo ele não ficasse sabendo de mim, os dois ficavam na mesma call sem se ver. Agora o de id menor liga na hora e
+// o outro liga se em 6 s ninguém tiver ligado (se os dois ligarem juntos, fica uma conexão só).
+function meetInRoom(pid) {
+  if (!room || !peer || pid === peer.id || !codeOf(pid) || members.has(pid) || isBanned(codeOf(pid))) return;
+  if (peer.id < pid) return connectTo(pid);
+  const rid = room.id;
+  setTimeout(() => { if (room?.id === rid && !members.has(pid)) connectTo(pid); }, 6000);
+}
+// a voz com alguém caiu (ou nunca conectou) mas a pessoa continua na call: liga a voz de novo
+function recallAudio(m) {
+  if (!room || members.get(m.id) !== m || callAlive(m.audio) || !m.data?.open) return;
+  const a = ring(m.id, mic, { metadata: { type: 'audio' }, sdpTransform: voiceSdp });
+  if (a) attachAudio(a, true);
 }
 
 function setupCallData(conn) {
@@ -3992,11 +4122,29 @@ function setupCallData(conn) {
     // câmera vai direto; tela só pra quem clicar em "Assistir transmissão" (igual Discord)
     if (screen) screenKind === 'cam' ? sendScreen(conn.peer) : conn.send({ t: 'live', on: true });
     if (screen && screenKind === 'screen') setTimeout(() => sendLivePreview(conn.peer), 1500);
+    setTimeout(() => dedupeCallData(conn.peer), 3000);
   });
   conn.on('data', msg => onCallData(conn.peer, msg));
   // se chegou uma conexão repetida, fechar a antiga não pode tirar a pessoa da call
-  conn.on('close', () => { if (members.get(conn.peer)?.data === conn) dropMember(conn.peer); });
+  conn.on('close', () => {
+    const m = members.get(conn.peer); if (!m || m.data !== conn) return;
+    // os dois tinham ligado ao mesmo tempo: se a outra conexão continua aberta, segue por ela
+    const alt = connsOf(peer).find(c => c !== conn && c.peer === conn.peer && c.type === 'data' && c.open && c.metadata?.kind === 'call');
+    if (alt) { m.data = alt; return; }
+    dropMember(conn.peer);
+  });
   conn.on('error', () => {});
+}
+
+// os dois entraram ao mesmo tempo e ficaram duas conexões de dados iguais: fica uma só, a mesma dos dois lados
+// (a de quem ligou com o id menor; empate pelo número da conexão, que é igual pros dois)
+function dedupeCallData(pid) {
+  const list = connsOf(peer).filter(c => c.peer === pid && c.type === 'data' && c.open && c.metadata?.kind === 'call');
+  if (list.length < 2) return;
+  const key = c => (c._mine ? peer.id : pid) + '|' + c.connectionId;
+  list.sort((a, b) => key(a) < key(b) ? -1 : 1);
+  const m = members.get(pid); if (m) m.data = list[0];
+  for (const c of list.slice(1)) { try { c.close(); } catch {} }
 }
 
 function onCallData(id, msg) {
@@ -4036,7 +4184,7 @@ function onCallData(id, msg) {
     if (!!msg.on !== !!m.watching && screen && screenKind === 'screen') msg.on ? SND.viewerJoin() : SND.viewerLeave();
     m.watching = !!msg.on;
     if (WANT_Q[msg.q]) m.wantQ = msg.q;
-    if (m.watching && screen && screenKind === 'screen') { if (!m.screenOut) sendScreen(id); }
+    if (m.watching && screen && screenKind === 'screen') { if (!callAlive(m.screenOut)) sendScreen(id); }
     else if (!m.watching && screenKind === 'screen') { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
     renderMembers();
   } else if (msg.t === 'mod') {
@@ -4054,7 +4202,8 @@ function dropMember(id, silent) {
   try { m.audio?.close(); m.screenOut?.close(); m.screenIn?.close(); m.data?.close(); } catch {}
   m.audioEl?.remove();
   hideScreen(id);
-  if (!silent) { if (m.name) { if (!prefOf(codeOf(id)).sfx) SND.leave(); toast(`${m.name} saiu da call`); logEvent(m.name, 'saiu da call'); } sendStatus(); }
+  // quem nunca chegou a conectar (offline, sem caminho) sai sem o aviso de "saiu da call"
+  if (!silent) { if (m.name && m.greeted) { if (!prefOf(codeOf(id)).sfx) SND.leave(); toast(`${m.name} saiu da call`); logEvent(m.name, 'saiu da call'); } sendStatus(); }
   if (room) renderMembers();
 }
 
@@ -4063,7 +4212,13 @@ setInterval(() => {
   const now = Date.now();
   for (const m of [...members.values()]) {
     if (m.data?.open) m.data.send({ t: 'ping' });
-    if (now - m.lastSeen > 20000) dropMember(m.id);
+    if (now - m.lastSeen > 20000) { dropMember(m.id); continue; }
+    if (!m.data?.open || !m.greeted) continue;
+    // sem voz com alguém que está na call: quem tem o id menor liga; o outro liga se passar muito tempo
+    if (callAlive(m.audio) || !m.audioOk) m.audioOk = now;
+    else if (now - m.audioOk > (peer.id < m.id ? 3000 : 12000)) { m.audioOk = now; recallAudio(m); }
+    // quero assistir a live e a imagem não chegou (ou a conexão da live caiu): pede de novo
+    if (m.watch && m.live && !m.screenIn && now - (m.watchAsk || 0) > 8000) { m.watchAsk = now; m.data.send({ t: 'watch', on: true, q: wantQ() }); }
   }
 }, 4000);
 
@@ -4084,9 +4239,22 @@ function setAudioBitrate(call, kbps) {
     }
   } catch {}
 }
-function attachAudio(call) {
+function attachAudio(call, mine) {
   const m = getMember(call.peer);
+  call._by = mine ? peer.id : call.peer; // quem ligou
+  const old = m.audio;
+  if (old && old !== call && callAlive(old)) {
+    // duas ligações de voz com a mesma pessoa (os dois ligaram juntos): os dois lados ficam com a de quem tem o id menor
+    if (old._by < call._by) { try { call.close(); } catch {} return; }
+    setTimeout(() => { try { old.close(); } catch {} }, 1500);
+  }
   m.audio = call;
+  call.on('close', () => {
+    if (m.audio !== call) return;
+    m.audio = null; // a voz caiu: o relógio da call liga de novo se a pessoa continuar aqui
+    setTimeout(() => recallAudio(m), peer.id < m.id ? 800 : 6000);
+  });
+  call.on('error', () => {});
   setTimeout(() => setAudioBitrate(call, VOICE_KBPS), 2000);
   call.on('stream', s => {
     setAudioBitrate(call, VOICE_KBPS);
@@ -4288,6 +4456,8 @@ $('btnCheckUpd').onclick = async () => {
   else if (res === 'none') toast(`✅ Você já está na versão mais nova (${APP_VERSION}).`);
   else toast('Não consegui buscar agora. Confira a internet e tente de novo.');
 };
+// recomeça todas as conexões sem fechar o programa (volta sozinho pra call em que estava)
+$('btnReconnect').onclick = () => { toast('Reconectando...'); setTimeout(restartApp, 400); };
 function showUpd(kind) {
   $('updText').textContent = kind === 'exe' ? '🎉 Atualização baixada! Feche e abra o programa pra terminar.' : '🎉 Tem uma versão nova do app!';
   $('updBtn').textContent = kind === 'exe' ? 'Entendi' : 'Atualizar agora';
@@ -4307,6 +4477,8 @@ async function openSettings(page = 'voz') {
     $('verInfo').textContent = `Concorde · versão ${APP_VERSION}`;
     $('sysInfo').textContent = `Versão ${APP_VERSION}. ` + (i ? (i.enabled ? 'Atualiza sozinho toda vez que abre.' : 'Atualização automática ainda não configurada.') : 'Você está usando pelo site: sempre abre a versão mais nova.');
   });
+  $('netInfo').textContent = `${peer?.open ? '🟢 Servidor de conexão ok' : '🟠 Servidor de conexão: reconectando'} · ${pcLive} conexões abertas · ` +
+    (turnOn ? 'relay ligado (conecta até com internet que bloqueia)' : 'sem relay: só ligação direta (4G e algumas internets não conectam)');
   autostart().then(st => { $('autoBox').hidden = st === null; $('optAuto').checked = !!st; });
   const a = avatar(profile.name, undefined, profile.code); a.id = 'sAv'; $('sAv').replaceWith(a);
   $('sName').textContent = profile.name;
@@ -4462,10 +4634,19 @@ function lockFramerate(call) {
 
 function sendScreen(id) {
   const m = members.get(id); if (!m || !screen) return;
-  if (m.screenOut) m.screenOut.close();
+  if (m.screenOut) { const o = m.screenOut; m.screenOut = null; try { o.close(); } catch {} }
   const kbps = curQ().kbps;
-  const call = peer.call(id, screen, { metadata: { type: 'screen', kind: screenKind, kbps }, sdpTransform: streamSdpFor(kbps) });
+  const call = ring(id, screen, { metadata: { type: 'screen', kind: screenKind, kbps }, sdpTransform: streamSdpFor(kbps) });
+  if (!call) return;
   m.screenOut = call;
+  call.on('close', () => {
+    if (m.screenOut !== call) return;
+    m.screenOut = null;
+    // a conexão da live caiu e a pessoa continua querendo assistir: manda de novo
+    const still = () => screen && !m.screenOut && members.get(id) === m && (screenKind === 'cam' || m.watching);
+    if (still()) setTimeout(() => { if (still()) sendScreen(id); }, 2000);
+  });
+  call.on('error', () => {});
   const pc = call.peerConnection;
   if (pc) pc.addEventListener('connectionstatechange', () => { if (pc.connectionState === 'connected') tune(call); });
   setTimeout(() => tune(call), 2000);
@@ -4477,7 +4658,7 @@ let pendingWatch = null; // clicou em AO VIVO de outra call: assiste assim que c
 const livePrevs = new Map(); // código do amigo -> { img, ts }: prévia da live dele (pra quem está fora da call)
 function setWatch(id, on) {
   const m = members.get(id); if (!m) return;
-  m.watch = on;
+  m.watch = on; m.watchAsk = Date.now();
   if (m.data?.open) m.data.send({ t: 'watch', on, q: wantQ() });
   if (!on) { try { m.screenIn?.close(); } catch {} m.screenIn = null; hideScreen(id); }
   else { showView({ type: 'call' }); toast(`Entrando na live de ${m.name}...`); }
@@ -4505,12 +4686,14 @@ async function watchFrom(pid, r, people) {
 function renderLiveCards() {
   document.querySelectorAll('.livecard').forEach(x => x.remove());
   for (const m of members.values()) {
-    if (!m.live || m.watch || m.screenIn) continue;
+    if (!m.live || m.screenIn) continue;
     const card = el('div', 'screen livecard'); card.dataset.live = m.id;
     const code = codeOf(m.id), av = avatar(m.name, undefined, code); av.classList.add('lcAv');
-    const b = el('button', 'primary', '▶ Assistir transmissão'); b.onclick = () => setWatch(m.id, true);
+    // já cliquei em assistir e a imagem ainda não chegou (ou a conexão da live caiu e está voltando)
+    const b = m.watch ? el('button', '', '✖ Cancelar') : el('button', 'primary', '▶ Assistir transmissão');
+    b.onclick = () => setWatch(m.id, !m.watch);
     const prev = el('div', 'lcPrev'); if (m.preview) prev.style.backgroundImage = `url("${m.preview}")`;
-    card.append(prev, av, el('div', 'lcName', m.name), el('div', 'lcSub', '🔴 está transmitindo a tela'), b);
+    card.append(prev, av, el('div', 'lcName', m.name), el('div', 'lcSub', m.watch ? '⏳ conectando na transmissão...' : '🔴 está transmitindo a tela'), b);
     $('screens').appendChild(card);
   }
   $('empty').hidden = !!document.querySelector('.screen');
@@ -4790,6 +4973,7 @@ let lowCapTicks = 0, lowCapWarned = false; // captura abaixo de 50fps (jogo ench
 setInterval(async () => {
   for (const tile of document.querySelectorAll('.screen')) {
     const id = tile.dataset.sid, v = tile.querySelector('video'), badge = tile.querySelector('.q');
+    if (!v) continue; // cartão "Assistir transmissão" (ainda sem vídeo)
     let fps = 0, h = v.videoHeight, w = v.videoWidth;
     if (id === 'me') {
       // o que está saindo de verdade pra quem assiste (o pior entre eles) e o motivo de cair
