@@ -305,6 +305,9 @@
   .member .info{width:100%}
   .member .nm{font-weight:600;font-size:16px}
   .member .user{font-size:12px;color:var(--muted)}
+  .member .net{font-size:11px;margin-top:1px;cursor:help}
+  .member .net:empty{display:none}
+  .member .net.good{color:#3ba55d} .member .net.mid{color:#faa61a} .member .net.bad{color:#ed4245;font-weight:600}
   .member input[type=range]{width:90%}
   #members.compact{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
   #members.compact .member{flex-direction:row;text-align:left;padding:6px 10px}
@@ -1018,6 +1021,7 @@
         <label class="radio"><input type="radio" name="inProf" value="iso"><div><b>Isolamento de Voz</b><div class="tip">Só a sua linda voz: o app limpa o ruído de fundo</div></div></label>
         <label class="radio"><input type="radio" name="inProf" value="studio"><div><b>Estúdio</b><div class="tip">Áudio puro: microfone aberto e sem processamento</div></div></label>
         <label class="radio"><input type="radio" name="inProf" value="custom"><div><b>Personalizado</b><div class="tip">Modo avançado: me dê todos os botões e mostradores!</div></div></label>
+        <div class="tog"><div><b>🤖 Supressão de ruído com IA</b><div class="tip" id="aiNsTip">Igual o Krisp do Discord: tira teclado, ventilador, barulho da rua e deixa só a sua voz. Roda no seu PC (o áudio não vai pra nenhum servidor). Vale com a supressão de ruído ligada.</div></div><input type="checkbox" class="tsw" id="optAiNs"></div>
         <div id="customBox">
           <div class="tog"><div><b>Ajustar Automaticamente a Sensibilidade de Entrada</b><div class="tip">Controla quanto som o app transmite do seu microfone. Fale pra testar: se o medidor ficar verde, o app está transmitindo sua voz.</div></div><input type="checkbox" class="tsw" id="optAutoSens"></div>
           <div class="sensw"><div class="bars sens" id="sensMeter"></div><input type="range" class="slider" id="sensSlider" min="-100" max="0" step="1" title="Sensibilidade"></div>
@@ -1072,7 +1076,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 30;
+const APP_VERSION = 31;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -2091,7 +2095,7 @@ function popMenu(e, items) {
       if (it.slider) {
         // barrinha dentro do menu (Volume do usuário)
         const w = el('div', 'mslider'); w.appendChild(el('span', 'ml', it.label));
-        const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = it.slider.value;
+        const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = it.slider.max || 100; r.value = it.slider.value;
         const v = el('span', 'mval', r.value + '%');
         r.oninput = () => { v.textContent = r.value + '%'; it.slider.fn(+r.value); };
         w.onclick = ev => ev.stopPropagation();
@@ -2404,7 +2408,7 @@ function onMod(msg, fromCode) {
 // silenciar só pra mim
 const localMuted = new Set(load('localMuted', []));
 function applyLocalMutes() {
-  for (const m of members.values()) if (m.audioEl) m.audioEl.muted = deaf || localMuted.has(codeOf(m.id));
+  for (const m of members.values()) applyVoiceVol(m);
 }
 function toggleLocalMute(code) {
   localMuted.has(code) ? localMuted.delete(code) : localMuted.add(code);
@@ -2446,7 +2450,7 @@ function memberMenu(code, e) {
         const n = prompt(`Apelido pra ${name} (só você vê; deixe vazio pra tirar):`, p.nick || ''); if (n !== null) { setPref(code, 'nick', cleanName(n).trim()); refreshNames(); }
       } });
       items.push({ sep: true });
-      items.push({ label: 'Volume do usuário', slider: { value: Math.round((p.vol ?? 1) * 100), fn: v => setUserVol(code, v / 100) } });
+      items.push({ label: 'Volume do usuário', slider: { value: Math.round((p.vol ?? 1) * 100), max: 200, fn: v => setUserVol(code, v / 100) } });
       items.push({ sep: true });
       items.push({ label: 'Silenciar', check: localMuted.has(code), keep: true, fn: () => toggleLocalMute(code) });
       items.push({ label: 'Silenciar efeitos sonoros', check: !!p.sfx, keep: true, fn: () => setPref(code, 'sfx', !prefOf(code).sfx) });
@@ -2488,7 +2492,7 @@ function refreshNames() {
 function setUserVol(code, v) {
   setPref(code, 'vol', v === 1 ? undefined : v);
   const m = members.get(PREFIX + code);
-  if (m) { m.volume = v; if (m.audioEl) m.audioEl.volume = v * outGain(); renderMembers(); }
+  if (m) { m.volume = v; applyVoiceVol(m); renderMembers(); }
 }
 function toggleVideo(code) {
   const off = !prefOf(code).novideo, pid = PREFIX + code;
@@ -4040,6 +4044,23 @@ let gateNode = null, gateInfo = { db: -100, thr: -50, open: false }, gateReady =
 const gateCfg = () => ({ gain: settings.micVol / 100, gate: settings.inProf !== 'studio',
                          auto: settings.inProf === 'iso' || settings.autoSens, thr: settings.sens });
 const sendGateCfg = () => gateNode?.port.postMessage(gateCfg());
+// Supressão de ruído com IA (RNNoise, no estilo do Krisp do Discord): tira teclado, ventilador, barulho da rua e deixa
+// a voz. Roda aqui no PC, nada do áudio sai pra internet. Se não carregar, fica a supressão normal do navegador.
+const RNN_CDN = 'https://cdn.jsdelivr.net/npm/@sapphi-red/web-noise-suppressor@0.4.1/dist/';
+const aiNsOn = () => settings.inProf !== 'studio' && settings.aiNs !== false && voiceOpts().ns;
+let rnnBin = null, aiNsActive = false;
+async function rnnoiseNode(ctx) {
+  if (ctx.sampleRate !== 48000) throw new Error('precisa de 48kHz');
+  ctx._rnn = ctx._rnn || ctx.audioWorklet.addModule(RNN_CDN + 'rnnoise/workletProcessor.js').catch(e => { ctx._rnn = null; throw e; });
+  rnnBin = rnnBin || (async () => {
+    const simd = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
+    const r = await fetch(RNN_CDN + (simd ? 'rnnoise_simd.wasm' : 'rnnoise.wasm'));
+    if (!r.ok) throw new Error('rnnoise ' + r.status);
+    return r.arrayBuffer();
+  })().catch(e => { rnnBin = null; throw e; });
+  const [bin] = await Promise.all([rnnBin, ctx._rnn]);
+  return new AudioWorkletNode(ctx, '@sapphi-red/web-noise-suppressor/rnnoise', { processorOptions: { maxChannels: 1, wasmBinary: bin } });
+}
 async function processMic(raw) {
   try {
     actx = actx || newCtx();
@@ -4047,10 +4068,13 @@ async function processMic(raw) {
     await gateReady;
     const node = new AudioWorkletNode(actx, 'tc-gate', { outputChannelCount: [1] });
     const dest = actx.createMediaStreamDestination(); dest.channelCount = 1;
-    actx.createMediaStreamSource(raw).connect(node).connect(dest);
+    let head = actx.createMediaStreamSource(raw), rn = null;
+    if (aiNsOn()) { try { rn = await rnnoiseNode(actx); head.connect(rn); head = rn; } catch { rn = null; } }
+    aiNsActive = !!rn;
+    head.connect(node).connect(dest);
     node.port.onmessage = e => { if (node === gateNode) gateInfo = e.data; };
     gateNode = node; sendGateCfg();
-    const out = dest.stream; out.raw = raw; out.node = node;
+    const out = dest.stream; out.raw = raw; out.node = node; out.rn = rn;
     return out;
   } catch { return raw; } // navegador sem AudioWorklet: manda o microfone direto
 }
@@ -4058,6 +4082,7 @@ function stopMic(s) {
   if (!s) return;
   s.getTracks().forEach(t => t.stop()); s.raw?.getTracks().forEach(t => t.stop());
   try { s.node?.disconnect(); } catch {}
+  try { s.rn?.disconnect(); s.rn?.port.postMessage('destroy'); } catch {}
 }
 async function getMic() {
   try {
@@ -4104,6 +4129,29 @@ function meetInRoom(pid) {
   if (peer.id < pid) return connectTo(pid);
   const rid = room.id;
   setTimeout(() => { if (room?.id === rid && !members.has(pid)) connectTo(pid); }, 6000);
+}
+// sinal da conexão com cada pessoa da call (igual o ícone de ping do Discord): ping e pacotes de voz perdidos
+async function netStats(m) {
+  const pc = m.audio?.peerConnection;
+  if (!pc || pc.connectionState !== 'connected') { m.net = null; return; }
+  const st = await pc.getStats(); let rtt = null, lost = 0, recv = 0, relay = false;
+  st.forEach(r => {
+    if (r.type === 'transport' && r.selectedCandidatePairId) {
+      const p = st.get(r.selectedCandidatePairId);
+      if (p) { rtt = p.currentRoundTripTime; relay = st.get(p.localCandidateId)?.candidateType === 'relay' || st.get(p.remoteCandidateId)?.candidateType === 'relay'; }
+    }
+    if (r.type === 'inbound-rtp' && r.kind === 'audio') { lost = r.packetsLost || 0; recv = r.packetsReceived || 0; }
+  });
+  const p = m.netPrev || { lost, recv }; m.netPrev = { lost, recv };
+  const dl = Math.max(0, lost - p.lost), dr = Math.max(0, recv - p.recv);
+  m.net = { rtt: rtt == null ? null : Math.round(rtt * 1000), loss: dl + dr ? dl / (dl + dr) : 0, relay };
+  const n = document.querySelector(`.member[data-pid="${CSS.escape(m.id)}"] .net`); if (n) paintNet(n, m.net);
+}
+function paintNet(n, x) {
+  const bad = (x.rtt ?? 0) > 300 || x.loss > 0.08, mid = !bad && ((x.rtt ?? 0) > 150 || x.loss > 0.02);
+  n.className = 'net ' + (bad ? 'bad' : mid ? 'mid' : 'good');
+  n.textContent = (bad ? '📶 conexão instável' : '📶 ' + (x.rtt == null ? '...' : x.rtt + ' ms')) + (x.relay ? ' · relay' : '');
+  n.title = `Ping ${x.rtt ?? '?'} ms · ${Math.round(x.loss * 100)}% da voz perdida no caminho · ${x.relay ? 'passando pelo relay' : 'ligação direta'}`;
 }
 // a voz com alguém caiu (ou nunca conectou) mas a pessoa continua na call: liga a voz de novo
 function recallAudio(m) {
@@ -4200,7 +4248,7 @@ function dropMember(id, silent) {
   const m = members.get(id); if (!m) return;
   members.delete(id);
   try { m.audio?.close(); m.screenOut?.close(); m.screenIn?.close(); m.data?.close(); } catch {}
-  m.audioEl?.remove();
+  m.audioEl?.remove(); dropBoost(m);
   hideScreen(id);
   // quem nunca chegou a conectar (offline, sem caminho) sai sem o aviso de "saiu da call"
   if (!silent) { if (m.name && m.greeted) { if (!prefOf(codeOf(id)).sfx) SND.leave(); toast(`${m.name} saiu da call`); logEvent(m.name, 'saiu da call'); } sendStatus(); }
@@ -4219,6 +4267,7 @@ setInterval(() => {
     else if (now - m.audioOk > (peer.id < m.id ? 3000 : 12000)) { m.audioOk = now; recallAudio(m); }
     // quero assistir a live e a imagem não chegou (ou a conexão da live caiu): pede de novo
     if (m.watch && m.live && !m.screenIn && now - (m.watchAsk || 0) > 8000) { m.watchAsk = now; m.data.send({ t: 'watch', on: true, q: wantQ() }); }
+    netStats(m).catch(() => {});
   }
 }, 4000);
 
@@ -4259,7 +4308,7 @@ function attachAudio(call, mine) {
   call.on('stream', s => {
     setAudioBitrate(call, VOICE_KBPS);
     if (!m.audioEl) { m.audioEl = new Audio(); m.audioEl.autoplay = true; document.body.appendChild(m.audioEl); setSink(m.audioEl); }
-    m.audioEl.srcObject = s; m.audioEl.volume = m.volume * outGain(); m.audioEl.muted = deaf || localMuted.has(codeOf(m.id));
+    m.audioEl.srcObject = s; applyVoiceVol(m);
     m.audioEl.play().catch(() => {});
     watchSpeaking(m, s);
   });
@@ -4397,8 +4446,29 @@ async function applyMicSettings() {
 }
 // volume do alto-falante vale pra todo mundo da call e pras transmissões
 const outGain = () => settings.outVol / 100;
+// volume da voz de cada pessoa, até 200% (igual Discord). Até 100% toca direto; acima disso passa por um
+// amplificador (Web Audio) e o elemento de áudio fica mudo, pra não tocar dobrado.
+function applyVoiceVol(m) {
+  if (!m.audioEl) return;
+  const off = deaf || localMuted.has(codeOf(m.id)), v = m.volume * outGain(), src = m.audioEl.srcObject;
+  if (v > 1.001 && src && actx) {
+    if (!m.boost || m.boostOf !== src) {
+      dropBoost(m);
+      try { m.boost = actx.createGain(); m.boostSrc = actx.createMediaStreamSource(src); m.boostSrc.connect(m.boost).connect(actx.destination); m.boostOf = src; }
+      catch { dropBoost(m); }
+      if (settings.outId && actx.setSinkId && actx.sinkId !== settings.outId) actx.setSinkId(settings.outId).catch(() => {});
+    }
+    if (m.boost) { m.boost.gain.value = off ? 0 : v; m.audioEl.volume = 1; m.audioEl.muted = true; return; }
+  }
+  dropBoost(m);
+  m.audioEl.volume = Math.min(1, v); m.audioEl.muted = off;
+}
+function dropBoost(m) {
+  try { m.boostSrc?.disconnect(); m.boost?.disconnect(); } catch {}
+  m.boost = m.boostSrc = m.boostOf = null;
+}
 function applyOutVol() {
-  for (const m of members.values()) if (m.audioEl) m.audioEl.volume = m.volume * outGain();
+  for (const m of members.values()) applyVoiceVol(m);
   document.querySelectorAll('.screen').forEach(t => { const v = t.querySelector('video'); if (v && !v.dataset.self) v.volume = (streamVol.get(t.dataset.sid) ?? 1) * outGain(); });
   if (loopback) loopback.volume = outGain();
 }
@@ -4495,6 +4565,7 @@ function paintSettings() {
   $('optAutoSens').checked = settings.autoSens; $('sensSlider').value = settings.sens;
   $('sensSlider').closest('.sensw').classList.toggle('auto', settings.autoSens);
   $('optNs').checked = settings.ns; $('optEc').checked = settings.ec; $('optAgc').checked = settings.agc;
+  $('optAiNs').checked = settings.aiNs !== false; $('optAiNs').disabled = settings.inProf === 'studio';
   $('sQuality').value = $('quality').value; $('sShareAudio').checked = $('shareAudio').checked; $('sCutOwn').checked = settings.cutOwn;
   $('sndVol').value = settings.sndVol; $('optGame').checked = settings.showGame !== false;
   $('sLivePrev').checked = settings.livePreview; $('sDuck').checked = settings.duck; $('sDuckAmt').value = settings.duckAmt;
@@ -4560,6 +4631,11 @@ $('optAutoSens').onchange = () => { settings.autoSens = $('optAutoSens').checked
 $('sensSlider').oninput = () => { settings.sens = +$('sensSlider').value; sendGateCfg(); save('settings', settings); };
 for (const [id, key] of [['optNs', 'ns'], ['optEc', 'ec'], ['optAgc', 'agc']])
   $(id).onchange = () => { settings[key] = $(id).checked; applyMicSettings(); updateButtons(); };
+$('optAiNs').onchange = async () => {
+  settings.aiNs = $('optAiNs').checked; await applyMicSettings(); updateButtons();
+  if (settings.aiNs && aiNsOn() && !aiNsActive) toast('Não consegui carregar a supressão com IA agora (internet?). Ficou a supressão normal.');
+  else toast(settings.aiNs ? (aiNsOn() ? '🤖 Supressão de ruído com IA ligada' : 'Ligue a supressão de ruído pra IA funcionar') : 'Supressão de ruído com IA desligada');
+};
 $('sQuality').onchange = () => { $('quality').value = $('sQuality').value; $('quality').onchange(); };
 $('sCutOwn').onchange = () => { settings.cutOwn = $('sCutOwn').checked; save('settings', settings); if (screen && screenKind === 'screen') toast('Vale a partir da próxima vez que você compartilhar a tela.'); };
 $('sShareAudio').onchange = () => { $('shareAudio').checked = $('sShareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
@@ -5064,18 +5140,20 @@ function memberEl(m, self) {
   const nm = el('div', 'nm', (self ? profile.name + ' (você)' : m.name || 'Conectando...'));
   if (topColor(code)) nm.style.color = topColor(code);
   info.append(nm, el('div', 'user', self ? myHandle() : m.user ? '@' + m.user : handleOf(code)), el('div', 'st', tags.join(' ') || '🟢 na call'));
+  if (!self) { const n = el('div', 'net'); if (m.net) paintNet(n, m.net); info.appendChild(n); } // sinal da conexão com a pessoa
   d.append(avatar(self ? profile.name : m.name, undefined, code), info);
   d.style.cursor = 'pointer';
   d.onclick = ev => { if (ev.target.tagName !== 'INPUT') openProfile(code); };
   d.oncontextmenu = ev => memberMenu(code, ev);
   if (!self) {
     const r = document.createElement('input');
-    r.type = 'range'; r.min = 0; r.max = 100; r.value = Math.round(m.volume * 100); r.title = 'Volume';
+    r.type = 'range'; r.min = 0; r.max = 200; r.value = Math.round(m.volume * 100);
+    const tip = () => { r.title = `Volume da voz: ${r.value}%` + (+r.value > 100 ? ' (amplificado)' : ''); };
     r.oninput = () => {
       m.volume = r.value / 100; setPref(codeOf(m.id), 'vol', m.volume === 1 ? undefined : m.volume);
-      if (m.audioEl) m.audioEl.volume = m.volume * outGain();
+      applyVoiceVol(m); tip();
     };
-    r.title = 'Volume da voz';
+    tip();
     d.appendChild(r);
   }
   return d;
@@ -5111,7 +5189,7 @@ $('btnNs').onclick = () => {
   const on = !voiceOpts().ns;
   if (settings.inProf !== 'custom') Object.assign(settings, voiceOpts(), { inProf: 'custom' }); // mexeu na mão: vira Personalizado
   settings.ns = on; applyMicSettings(); updateButtons();
-  toast(settings.ns ? 'Supressão de ruído ligada' : 'Supressão de ruído desligada');
+  toast(settings.ns ? (aiNsOn() ? '🤖 Supressão de ruído (com IA) ligada' : 'Supressão de ruído ligada') : 'Supressão de ruído desligada');
 };
 $('vbShare').onclick = () => screen && screenKind === 'screen' ? stopShare() : startShare();
 $('vbCam').onclick = () => screen && screenKind === 'cam' ? stopShare() : startCam();
