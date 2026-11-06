@@ -937,6 +937,20 @@
     <div class="pmB" style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button id="loCancel">Cancelar</button><button id="loGo" class="danger">Sair</button></div>
   </div>
 </div>
+<div id="relayModal" class="modal" hidden>
+  <div class="card" style="width:min(480px,100%);display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">🛰️ Relay (servidor de passagem)</b><button class="ib" id="rlClose">✕</button></div>
+    <div class="st" style="font-size:13px;color:#b5bac1">Quando a internet de alguém bloqueia a ligação direta (VPN, 4G, alguns roteadores), a call passa pelo relay. Cole aqui os dados do painel do ExpressTURN (ou outro serviço TURN).</div>
+    <div class="lbl">Servidor</div><input id="rlHost" maxlength="120" placeholder="relay1.expressturn.com:3478" autocomplete="off" spellcheck="false">
+    <div class="lbl">Usuário (username)</div><input id="rlUser" maxlength="200" autocomplete="off" spellcheck="false">
+    <div class="lbl">Senha (password)</div><input id="rlPass" type="password" maxlength="200" autocomplete="new-password">
+    <div class="tip" id="rlInfo"></div>
+    <div class="pmB" style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:4px">
+      <button id="rlDel" class="danger">Remover</button>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button id="rlLink">🔗 Copiar link de convite com relay</button><button id="rlSave" class="primary">Salvar e testar</button></span>
+    </div>
+  </div>
+</div>
 <div id="inviteModal" class="modal" hidden>
   <div class="card" style="width:min(440px,100%)">
     <div style="display:flex;justify-content:space-between;align-items:center"><b id="invTitle" style="font-size:18px"></b><button class="ib" id="invClose">✕</button></div>
@@ -1067,6 +1081,7 @@
         <div class="tog"><div><b>Mostrar o jogo que estou jogando</b><div class="tip">Os amigos veem "Jogando ..." (só o nome do jogo aberto). Desligado, ninguém vê.</div></div><input type="checkbox" class="tsw" id="optGame"></div>
         <div class="tog"><div><b>Atualização</b><div class="tip" id="sysInfo"></div></div><button id="btnCheckUpd" style="white-space:nowrap;flex-shrink:0">🔄 Buscar atualização</button></div>
         <div class="tog"><div><b>Conexão</b><div class="tip" id="netInfo"></div></div><button id="btnReconnect" style="white-space:nowrap;flex-shrink:0">🔌 Reconectar tudo</button></div>
+        <div class="tog"><div><b>Relay</b><div class="tip" id="relayInfo"></div></div><button id="btnRelay" style="white-space:nowrap;flex-shrink:0">🛰️ Configurar relay</button></div>
       </section>
     </div>
   </div>
@@ -1076,7 +1091,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 31;
+const APP_VERSION = 32;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1088,16 +1103,50 @@ const ICE = { iceServers: [
 // a conexão passa por ele. Os dados ficam no site (turn.json) pra dar pra trocar sem lançar versão nova.
 // Sem o arquivo, segue só a ligação direta, como antes.
 const TURN_URL = 'https://justinocosta007.github.io/concorde/turn.json';
-let turnOn = false;
+let turnOn = false, turnSite = [];
+// junta o relay do site (turn.json) com o configurado no app e põe na lista que toda conexão nova usa
+function applyTurn() {
+  const list = [...turnSite, ...relayIce(relayCfg)].slice(0, 6);
+  ICE.iceServers = ICE.iceServers.filter(s => ![].concat(s.urls).some(u => /^turns?:/.test(u))).concat(list);
+  turnOn = list.length > 0;
+}
 function useTurn(list) {
   if (!Array.isArray(list)) return false;
-  const ok = list.filter(s => s && [].concat(s.urls || []).length && [].concat(s.urls).every(u => typeof u === 'string' && /^turns?:/.test(u)))
+  const ok = list.filter(s => s && [].concat(s.urls || []).length && [].concat(s.urls).every(u => typeof u === 'string' && /^turns?:/.test(u))
+    && !/COLE_AQUI/.test(String(s.username) + s.credential))
     .slice(0, 4).map(s => ({ urls: s.urls, username: String(s.username || ''), credential: String(s.credential || '') }));
   if (!ok.length) return false;
-  ICE.iceServers = ICE.iceServers.filter(s => ![].concat(s.urls).some(u => /^turns?:/.test(u))).concat(ok);
-  return (turnOn = true);
+  turnSite = ok; applyTurn();
+  return true;
+}
+// Relay colado no próprio app (Configurações › Sistema › Relay). O do líder do servidor vale pra todo mundo:
+// o app dele passa pros amigos, e o link de convite leva junto pra quem ainda não consegue conectar em ninguém.
+let relayCfg = null;
+const RELAY_KEY = 'tc' + (new URLSearchParams(location.search).get('perfil') ? '-' + new URLSearchParams(location.search).get('perfil') : '') + '-relay';
+function cleanRelay(c) {
+  if (!c || typeof c !== 'object') return null;
+  const u = [].concat(c.u || []).filter(x => typeof x === 'string' && /^turns?:[\w.-]+(:\d{1,5})?(\?transport=(udp|tcp))?$/.test(x)).slice(0, 4);
+  if (!u.length || typeof c.n !== 'string' || typeof c.p !== 'string' || !c.n || !c.p) return null;
+  return { u, n: c.n.slice(0, 200), p: c.p.slice(0, 200), by: String(c.by || '').slice(0, 6), at: Number(c.at) || 0 };
+}
+function relayIce(c) { return c ? [{ urls: c.u, username: c.n, credential: c.p }] : []; }
+function saveRelay(c) {
+  relayCfg = c;
+  try { c ? localStorage.setItem(RELAY_KEY, JSON.stringify(c)) : localStorage.removeItem(RELAY_KEY); } catch {}
+  applyTurn();
+}
+const relayToLink = c => btoa(unescape(encodeURIComponent(JSON.stringify(c)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const relayFromLink = s => cleanRelay(JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))))));
+try { relayCfg = cleanRelay(JSON.parse(localStorage.getItem(RELAY_KEY) || 'null')); } catch {}
+{ // abriu por um link com relay (#relay=...): guarda e tira do endereço
+  const m = location.hash.match(/[#&]relay=([\w-]+)/);
+  if (m) {
+    try { const c = relayFromLink(m[1]); if (c && (!relayCfg || c.at > relayCfg.at)) relayCfg = c, localStorage.setItem(RELAY_KEY, JSON.stringify(c)); } catch {}
+    history.replaceState(null, '', location.pathname + location.search);
+  }
 }
 try { useTurn(JSON.parse(localStorage.getItem('tc-turn') || 'null')); } catch {}
+applyTurn();
 // turn.json pode ter a lista pronta ({ "iceServers": [...] }) ou um link que gera as senhas ({ "url": "https://..." }, Metered)
 fetch(TURN_URL + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(async j => {
   if (j && typeof j.url === 'string' && /^https:\/\//.test(j.url)) j = await (await fetch(j.url, { cache: 'no-store' })).json();
@@ -1352,7 +1401,8 @@ async function openInvite() {
   const box = $('invBody'); box.innerHTML = '';
   $('invTitle').textContent = `Convide amigos para ${channels.server?.name || 'o servidor'}`;
   if (siteUrl) {
-    const link = `${siteUrl}?convite=${profile.code}`;
+    // com relay configurado, o link leva junto (assim conecta até quem usa VPN ou 4G)
+    const link = `${siteUrl}?convite=${profile.code}` + (relayCfg ? '#relay=' + relayToLink(relayCfg) : '');
     const text = `Entra no ${channels.server?.name || 'servidor'} no Concorde!\n` +
       `Pelo navegador: ${link}\nOu instale o programa: ${siteUrl}concorde-setup.exe e me adicione: @${profile.user}`;
     box.append(el('div', 'lbl', 'Envie um link de convite para um amigo'));
@@ -1610,6 +1660,18 @@ function cleanRoom(r) {
   };
 }
 
+// relay do líder do servidor: chega de um amigo e passa adiante pros outros (só vale o que o líder configurou)
+function takeRelay(c, from) {
+  c = cleanRelay(c); if (!c) return;
+  if (from !== OWNER && c.by !== OWNER) return;
+  if (relayCfg && c.at <= relayCfg.at) return;
+  saveRelay(c); shareRelay(from);
+}
+function shareRelay(except) {
+  if (!relayCfg || relayCfg.by !== OWNER) return;
+  for (const [code, o] of online) if (code !== except && o.theyAdded && o.conn.open) o.conn.send({ t: 'relay', cfg: relayCfg });
+}
+
 function onFriendData(code, conn, m) {
   if (!m || typeof m !== 'object') return;
   const o = online.get(code);
@@ -1629,6 +1691,7 @@ function onFriendData(code, conn, m) {
         // cópias com senha: a minha e as que eu guardo (assim chegam em quem estiver online quando alguém precisar)
         const mine = load('vault', null);
         conn.send({ t: 'vaults', list: [...(mine ? [mine] : []), ...Object.values(vaults)].slice(-300) });
+        if (relayCfg && relayCfg.by === OWNER) conn.send({ t: 'relay', cfg: relayCfg }); // relay do servidor
       }
     } else if (m.friend && !prefOf(code).blocked) {
       // conta acabou de ser recuperada: quem já era amigo volta sozinho (por 3 dias)
@@ -1642,6 +1705,7 @@ function onFriendData(code, conn, m) {
     }
     renderFriends(); renderRooms();
   } else if (m.t === 'vault' && isFriend(code)) keepVault(m.v, code);
+  else if (m.t === 'relay' && isFriend(code)) takeRelay(m.cfg, code);
   else if (m.t === 'vaults' && isFriend(code) && Array.isArray(m.list)) { for (const v of m.list.slice(0, 300)) keepVault(v, code); }
   else if (m.t === 'status' && o && o.conn === conn) {
     o.room = cleanRoom(m.room);
@@ -4528,6 +4592,62 @@ $('btnCheckUpd').onclick = async () => {
 };
 // recomeça todas as conexões sem fechar o programa (volta sozinho pra call em que estava)
 $('btnReconnect').onclick = () => { toast('Reconectando...'); setTimeout(restartApp, 400); };
+
+// ---------- relay colado no app ----------
+const relayHost = c => c.u[0].replace(/^turns?:/, '').replace(/\?.*$/, '');
+function relayStatus() {
+  if (relayCfg) return `✅ Ligado: ${relayHost(relayCfg)}` + (relayCfg.by === OWNER ? ' (do líder do servidor, vale pra todos)' : ' (só neste aparelho)');
+  if (turnSite.length) return '✅ Ligado pelo site do Concorde';
+  return '⚪ Desligado: quem usa VPN, 4G ou internet que bloqueia pode não conseguir conectar';
+}
+// testa de verdade: pede um endereço ao relay (com usuário e senha errados ele recusa na hora)
+async function testRelay(c) {
+  const pc = new RTCPeerConnection({ iceServers: relayIce(c), iceTransportPolicy: 'relay' });
+  pc.createDataChannel('t'); let ok = false, err = '';
+  pc.onicecandidate = e => { if (e.candidate && / typ relay /.test(e.candidate.candidate)) ok = true; };
+  pc.onicecandidateerror = e => { if (!err || e.errorCode === 401) err = String(e.errorCode); };
+  await pc.setLocalDescription(await pc.createOffer());
+  for (let i = 0; i < 48 && !ok; i++) await new Promise(r => setTimeout(r, 250));
+  pc.close();
+  return ok ? 'ok' : err === '401' ? 'senha' : 'servidor';
+}
+async function relayInviteLink() {
+  if (!siteUrl) { try { siteUrl = (await (await fetch('/api/update', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' })).json()).url || ''; } catch {} }
+  return `${siteUrl || 'https://justinocosta007.github.io/concorde/'}?convite=${profile.code}#relay=${relayToLink(relayCfg)}`;
+}
+function openRelay() {
+  const c = relayCfg;
+  $('rlHost').value = c ? relayHost(c) : 'relay1.expressturn.com:3478';
+  $('rlUser').value = c?.n || ''; $('rlPass').value = c?.p || '';
+  $('rlInfo').textContent = relayStatus();
+  $('rlDel').hidden = $('rlLink').hidden = !c;
+  $('relayModal').hidden = false;
+}
+$('btnRelay').onclick = openRelay;
+$('rlClose').onclick = () => { $('relayModal').hidden = true; };
+$('relayModal').onclick = e => { if (e.target === $('relayModal')) $('relayModal').hidden = true; };
+$('rlSave').onclick = async () => {
+  const host = $('rlHost').value.trim().replace(/^turns?:\/*/i, '').replace(/\?.*$/, '').replace(/\/+$/, '');
+  if (!/^[\w.-]+(:\d{1,5})?$/.test(host)) return toast('Servidor inválido. Exemplo: relay1.expressturn.com:3478');
+  const h = /:\d+$/.test(host) ? host : host + ':3478';
+  const c = cleanRelay({ u: [`turn:${h}`, `turn:${h}?transport=tcp`], n: $('rlUser').value.trim(), p: $('rlPass').value.trim(), by: profile.code, at: Date.now() });
+  if (!c) return toast('Preencha o usuário e a senha do relay.');
+  const b = $('rlSave'); b.disabled = true; b.textContent = 'Testando...'; $('rlInfo').textContent = '⏳ Testando o relay...';
+  const r = await testRelay(c).catch(() => 'servidor');
+  b.disabled = false; b.textContent = 'Salvar e testar';
+  if (r !== 'ok') {
+    $('rlInfo').textContent = r === 'senha' ? '❌ O relay recusou o usuário ou a senha. Confira no painel do ExpressTURN e cole de novo.'
+      : '❌ O servidor do relay não respondeu. Confira o endereço do servidor (e a sua internet).';
+    return;
+  }
+  saveRelay(c); shareRelay();
+  $('rlInfo').textContent = '✅ Relay funcionando! ' + (profile.code === OWNER
+    ? 'Já mandei pros amigos online. Pra quem ainda não consegue conectar, mande o link de convite com relay.' : 'Vale neste aparelho.');
+  $('rlDel').hidden = $('rlLink').hidden = false;
+  $('relayInfo').textContent = relayStatus();
+};
+$('rlDel').onclick = () => { saveRelay(null); $('relayModal').hidden = true; $('relayInfo').textContent = relayStatus(); toast('Relay removido deste aparelho.'); };
+$('rlLink').onclick = async () => { if (relayCfg) copy(await relayInviteLink()); };
 function showUpd(kind) {
   $('updText').textContent = kind === 'exe' ? '🎉 Atualização baixada! Feche e abra o programa pra terminar.' : '🎉 Tem uma versão nova do app!';
   $('updBtn').textContent = kind === 'exe' ? 'Entendi' : 'Atualizar agora';
@@ -4549,6 +4669,7 @@ async function openSettings(page = 'voz') {
   });
   $('netInfo').textContent = `${peer?.open ? '🟢 Servidor de conexão ok' : '🟠 Servidor de conexão: reconectando'} · ${pcLive} conexões abertas · ` +
     (turnOn ? 'relay ligado (conecta até com internet que bloqueia)' : 'sem relay: só ligação direta (4G e algumas internets não conectam)');
+  $('relayInfo').textContent = relayStatus();
   autostart().then(st => { $('autoBox').hidden = st === null; $('optAuto').checked = !!st; });
   const a = avatar(profile.name, undefined, profile.code); a.id = 'sAv'; $('sAv').replaceWith(a);
   $('sName').textContent = profile.name;
