@@ -1091,7 +1091,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 32;
+const APP_VERSION = 33;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -1568,7 +1568,11 @@ function startPeer() {
       m.screenIn = call;
       m.screenKind = call.metadata.kind === 'cam' ? 'cam' : 'screen';
       if (m.screenKind === 'screen') { m.live = true; m.watch = true; } // versão antiga manda direto: já conta como assistindo
-      call.on('stream', s => { smoothScreen(call); showScreen(call.peer, s); });
+      call.on('stream', s => {
+        smoothScreen(call); showScreen(call.peer, s);
+        // quem transmite com versão antiga pode ter guardado uma qualidade menor pedida antes: pede a original
+        if (m.data?.open) m.data.send({ t: 'wantq', q: 'orig' });
+      });
       call.on('close', () => { if (m.screenIn === call) { m.screenIn = null; hideScreen(call.peer); } });
     } else {
       call.answer(mic, { sdpTransform: voiceSdp });
@@ -4288,14 +4292,13 @@ function onCallData(id, msg) {
       const card = document.querySelector(`.livecard[data-live="${CSS.escape(id)}"] .lcPrev`);
       if (card) card.style.backgroundImage = `url("${m.preview}")`; else renderLiveCards();
     }
-  } else if (msg.t === 'wantq') {
-    // quem assiste mudou a qualidade que quer receber: ajusta só o envio pra essa pessoa
-    if (WANT_Q[msg.q]) { m.wantQ = msg.q; if (m.screenOut) tune(m.screenOut); }
+  } else if (msg.t === 'lstat') {
+    // quem transmite conta como a live está saindo pra mim e por que caiu (internet / PC / placa de vídeo dele)
+    m.lstat = { w: +msg.w || 0, h: +msg.h || 0, fps: +msg.fps || 0, why: ['internet', 'pc', 'placa'].includes(msg.why) ? msg.why : '', at: Date.now() };
   } else if (msg.t === 'watch') {
-    // alguém entrou ou saiu da minha live
+    // alguém entrou ou saiu da minha live (o pedido de qualidade de versões antigas é ignorado: quem transmite decide)
     if (!!msg.on !== !!m.watching && screen && screenKind === 'screen') msg.on ? SND.viewerJoin() : SND.viewerLeave();
     m.watching = !!msg.on;
-    if (WANT_Q[msg.q]) m.wantQ = msg.q;
     if (m.watching && screen && screenKind === 'screen') { if (!callAlive(m.screenOut)) sendScreen(id); }
     else if (!m.watching && screenKind === 'screen') { try { m.screenOut?.close(); } catch {} m.screenOut = null; }
     renderMembers();
@@ -4769,24 +4772,12 @@ $('optGame').onchange = () => { settings.showGame = $('optGame').checked; save('
 $('sndVol').onchange = () => SND.join(true);
 
 // ---------- compartilhar tela ----------
-// qualidade que cada um quer RECEBER (escolhe clicando no selo da live que está assistindo)
-const WANT_Q = {
-  orig:      { label: '⭐ Original (como a pessoa transmite)' },
-  '1080p60': { label: 'Full HD 1080p 60fps', h: 1080, fps: 60 }, '1080p30': { label: 'Full HD 1080p 30fps', h: 1080, fps: 30 },
-  '720p60':  { label: '720p 60fps', h: 720, fps: 60 },           '720p30':  { label: '720p 30fps (internet fraca)', h: 720, fps: 30 },
-};
-const wantQ = () => WANT_Q[load('wantQ', 'orig')] ? load('wantQ', 'orig') : 'orig';
-// o que mandar pra um amigo: o que eu transmito, ou menos se ele pediu menos (nunca mais que o meu)
-function sendQFor(call) {
-  const q = curQ();
-  const m = [...members.values()].find(x => x.screenOut === call);
-  const w = WANT_Q[m?.wantQ];
-  if (!w || !w.h) return { kbps: q.kbps, fps: q.fps, scale: 1 };
-  const srcH = screen?.getVideoTracks()[0]?.getSettings().height || q.h;
-  const fps = Math.min(q.fps, w.fps), scale = Math.max(1, srcH / w.h);
-  const key = (scale > 1 ? w.h : q.h) + 'p' + fps;
-  return { kbps: Math.min(q.kbps, QUALITY[key]?.kbps || q.kbps), fps, scale };
-}
+// v33: quem TRANSMITE escolhe a qualidade, e todo mundo recebe igual. A escolha de quem assiste (v29) foi
+// tirada: ficava salva por navegador (a versão web guardava uma escolha antiga) e a live chegava borrada sem ninguém saber por quê.
+// 'orig' continua indo no pedido pra que quem transmite com versão antiga também mande a qualidade dele.
+const wantQ = () => 'orig';
+try { localStorage.removeItem(KEY + '-wantQ'); } catch {}
+function sendQFor() { const q = curQ(); return { kbps: q.kbps, fps: q.fps, scale: 1 }; }
 function tune(call) {
   const q = sendQFor(call);
   setAudioBitrate(call, STREAM_KBPS);
@@ -5037,7 +5028,7 @@ async function beginShare(audioSrc) {
     if (old && screen === old) stopShare(); // estava com a câmera ligada: troca pela tela
     screen = got;
   } catch { toast('Compartilhamento cancelado.'); return; }
-  screenKind = 'screen'; lowCapTicks = 0; lowCapWarned = false;
+  screenKind = 'screen'; lowCapTicks = 0; lowCapWarned = false; lowNetTicks = 0; lowNetWarned = false;
   if (audioSrc && typeof audioSrc.pid === 'number') {
     try {
       screen.addTrack(await appAudioTrack(audioSrc.pid, audioSrc.name));
@@ -5127,13 +5118,7 @@ function showScreen(id, stream) {
   const fs = el('button', 'fs', '⛶'); fs.title = 'Tela cheia';
   const toggleFs = () => document.fullscreenElement ? document.exitFullscreen() : tile.requestFullscreen();
   fs.onclick = toggleFs; v.ondblclick = toggleFs;
-  const q = el('div', 'q', '...'); q.title = 'Qualidade que está chegando agora';
-  // quem assiste escolhe a qualidade que recebe (igual YouTube): clica no selo
-  if (!self && members.get(id)?.screenKind !== 'cam') {
-    q.classList.add('pick'); q.title = 'Clique pra escolher a qualidade que você recebe';
-    q.onclick = e => popMenu(e, () => Object.entries(WANT_Q).map(([k, w]) => ({ label: w.label, check: wantQ() === k, keep: true,
-      fn: () => { save('wantQ', k); for (const m of members.values()) if (m.data?.open && m.screenIn) m.data.send({ t: 'wantq', q: k }); toast('Qualidade: ' + w.label); } })));
-  }
+  const q = el('div', 'q', '...'); q.title = self ? 'Qualidade que está saindo pros amigos' : 'Qualidade que está chegando agora (quem transmite escolhe)';
   tile.append(v, lab, fs, q);
   if (!self) {
     // som da transmissão: cada um muta ou ajusta só pra si, sem mexer na voz da pessoa
@@ -5167,21 +5152,28 @@ function showScreen(id, stream) {
 }
 // selo de qualidade em cada tela: resolução e fps reais
 let lowCapTicks = 0, lowCapWarned = false; // captura abaixo de 50fps (jogo enchendo a placa): avisa uma vez por live
+let lowNetTicks = 0, lowNetWarned = false; // upload não aguenta a qualidade escolhida (imagem bem menor): avisa uma vez por live
 setInterval(async () => {
   for (const tile of document.querySelectorAll('.screen')) {
     const id = tile.dataset.sid, v = tile.querySelector('video'), badge = tile.querySelector('.q');
     if (!v) continue; // cartão "Assistir transmissão" (ainda sem vídeo)
     let fps = 0, h = v.videoHeight, w = v.videoWidth;
     if (id === 'me') {
-      // o que está saindo de verdade pra quem assiste (o pior entre eles) e o motivo de cair
+      // o que está saindo de verdade pra cada um que assiste; o selo mostra o pior e o motivo de cair
       let why = '', worst = null, cap = 0;
+      const outs = [];
       for (const m of members.values()) {
+        if (!m.screenOut) continue;
+        let o = null;
         try {
-          (await m.screenOut?.peerConnection?.getStats())?.forEach(r => {
-            if (r.type === 'outbound-rtp' && r.kind === 'video' && r.frameHeight && (!worst || r.framesPerSecond < worst.framesPerSecond)) worst = r;
+          (await m.screenOut.peerConnection?.getStats())?.forEach(r => {
+            if (r.type === 'outbound-rtp' && r.kind === 'video' && r.frameHeight) o = r;
             if (r.type === 'media-source' && r.kind === 'video' && r.framesPerSecond) cap = r.framesPerSecond; // quadros que a captura da tela entrega
           });
         } catch {}
+        if (!o) continue;
+        outs.push([m, o]);
+        if (!worst || o.frameHeight * (o.framesPerSecond || 1) < worst.frameHeight * (worst.framesPerSecond || 1)) worst = o;
       }
       if (worst) {
         w = worst.frameWidth; h = worst.frameHeight; fps = worst.framesPerSecond || 0;
@@ -5194,6 +5186,18 @@ setInterval(async () => {
           lowCapWarned = true;
           toast('🎮 A live caiu pra ' + Math.round(cap) + 'fps porque o jogo está usando a placa de vídeo inteira. Limite o FPS do jogo (ex.: 120, ou ligue o V-Sync / Radeon Chill) que a live fica lisa.', 12000);
         }
+        // o upload não aguenta a qualidade escolhida e a imagem ficou bem menor (borrada): sugere uma que cabe
+        const srcH = screen?.getVideoTracks()[0]?.getSettings().height || curQ().h;
+        const netLow = worst.qualityLimitationReason === 'bandwidth' && worst.frameHeight < srcH * 0.6;
+        lowNetTicks = netLow ? lowNetTicks + 1 : 0;
+        if (lowNetTicks === 10 && !lowNetWarned) { // 20 s seguidos: o começo da live (internet ainda subindo) não conta
+          lowNetWarned = true;
+          const cur = $('quality').value, kb = (worst.targetBitrate || 0) / 1000;
+          const fit = Object.keys(QUALITY).find(k => k !== cur && QUALITY[k].kbps < QUALITY[cur]?.kbps && QUALITY[k].kbps <= kb * 1.3) || '720p30';
+          const name = k => $('quality').querySelector(`option[value="${k}"]`)?.textContent || k;
+          toast(`📶 Sua internet (upload) não está dando conta do ${name(cur)}: a live está chegando em ${worst.frameWidth}×${worst.frameHeight} pra quem assiste, borrada. ` +
+            `Escolha uma qualidade menor lá embaixo (ex.: ${name(fit)}) que a imagem fica mais nítida.`, 15000);
+        }
       } else {
         const s = screen?.getVideoTracks()[0]?.getSettings();
         if (s) { w = s.width; h = s.height; fps = s.frameRate; }
@@ -5204,16 +5208,38 @@ setInterval(async () => {
       badge.title = why ? 'A qualidade caiu por causa ' + (why.includes('internet') ? 'da internet (upload). Tente 30fps ou 720p.'
         : why.includes('placa') ? 'do jogo usando a placa de vídeo inteira: sobra pouco pra capturar a tela. Limite o FPS do jogo (ex.: 120) ou ligue o V-Sync / Radeon Chill.'
         : 'do PC pesado. Feche programas ou use 720p.') : 'Qualidade que está saindo pros amigos';
+      // conta pra cada um como está saindo pra ele: o selo de quem assiste mostra o motivo (ex.: "internet de Pingo")
+      for (const [m, o] of outs) if (m.data?.open) {
+        const r = o.qualityLimitationReason;
+        m.data.send({ t: 'lstat', w: o.frameWidth, h: o.frameHeight, fps: Math.round(o.framesPerSecond || 0),
+          why: r === 'bandwidth' ? 'internet' : r === 'cpu' ? 'pc' : lowCapTicks >= 2 ? 'placa' : '' });
+      }
       continue;
-    } else {
-      try {
-        const stats = await members.get(id)?.screenIn?.peerConnection?.getStats();
-        stats?.forEach(r => { if (r.type === 'inbound-rtp' && r.kind === 'video' && r.framesPerSecond) fps = r.framesPerSecond; });
-      } catch {}
     }
+    // quem assiste: o que chega, e o motivo se a live estiver ruim (do lado de quem transmite ou no caminho)
+    const m = members.get(id);
+    let lost = 0, got = 0, frz = 0;
+    try {
+      (await m?.screenIn?.peerConnection?.getStats())?.forEach(r => {
+        if (r.type !== 'inbound-rtp' || r.kind !== 'video') return;
+        if (r.framesPerSecond) fps = r.framesPerSecond;
+        lost = r.packetsLost || 0; got = r.packetsReceived || 0; frz = r.freezeCount || 0;
+      });
+    } catch {}
+    const p = tile._net || { lost, got, frz }; tile._net = { lost, got, frz };
+    const dl = lost - p.lost, dg = got - p.got, loss = dl > 0 && dg > 0 ? dl / (dl + dg) : 0;
+    const ls = m?.lstat && Date.now() - m.lstat.at < 7000 ? m.lstat : null;
+    const who = (m?.name || '').trim().split(/\s+/)[0] || 'quem transmite';
+    const why = ls?.why === 'internet' ? ' · internet de ' + who : ls?.why === 'pc' ? ' · PC de ' + who + ' pesado'
+      : ls?.why === 'placa' ? ' · placa de vídeo de ' + who + ' cheia' : loss > 0.03 || frz > p.frz ? ' · conexão instável' : '';
     if (!h) continue;
-    badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}`;
-    badge.classList.toggle('hd', h >= 1080);
+    badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}${why}`;
+    badge.classList.toggle('hd', h >= 1080 && !why);
+    badge.title = !why ? 'Qualidade que está chegando agora (quem transmite escolhe)'
+      : why.includes('internet') ? `A internet (upload) de ${who} não está dando conta da qualidade escolhida, por isso a imagem caiu. ${who} pode escolher uma qualidade menor.`
+      : why.includes('PC') ? `O PC de ${who} está pesado demais pra codificar a live. Fechar programas ou usar 720p ajuda.`
+      : why.includes('placa') ? `O jogo de ${who} está usando a placa de vídeo inteira. Limitar o FPS do jogo (ex.: 120) deixa a live lisa.`
+      : `Estão se perdendo pacotes no caminho (${Math.round(loss * 100)}%): pode ser a sua internet ou a de ${who}. Wi-Fi fraco e downloads ao mesmo tempo pioram.`;
   }
 }, 2000);
 
