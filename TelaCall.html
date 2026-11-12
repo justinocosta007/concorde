@@ -972,6 +972,11 @@
     <div id="liPrevBox"><video id="liPrev" muted autoplay playsinline></video><span class="livepill">AO VIVO</span><span id="liPrevRes"></span></div>
     <div class="lbl">Qualidade que você transmite (vale pra todo mundo)</div>
     <select id="liQuality"></select>
+    <div class="lbl">Se a internet ou o PC apertar</div>
+    <select id="liPrio">
+      <option value="res">📐 Resolução fixa: a que você escolheu, sempre (cai um pouco o fps)</option>
+      <option value="fps">🎮 FPS liso: segura o fps (a resolução varia, pode ficar borrada)</option>
+    </select>
     <div id="liCap" style="font-size:13px;color:#b5bac1;line-height:1.4"></div>
     <div class="lbl">Chegando agora em cada amigo</div>
     <div id="liList"></div>
@@ -1080,6 +1085,10 @@
           <option value="1440p60">Quad HD 1440p 60fps (internet boa)</option><option value="1440p30">Quad HD 1440p 30fps</option>
           <option value="1080p60">Full HD 1080p 60fps</option><option value="1080p30">Full HD 1080p 30fps</option>
           <option value="720p60">720p 60fps</option><option value="720p30">720p 30fps (internet fraca)</option></select></div>
+        <div class="lbl">Se a internet ou o PC apertar</div>
+        <div class="selw"><span>📐</span><select id="sPrio">
+          <option value="res">Resolução fixa: a que você escolheu, sempre (cai um pouco o fps)</option>
+          <option value="fps">FPS liso: segura o fps (a resolução varia, pode ficar borrada)</option></select></div>
         <div class="tog"><div><b>Mostrar prévias da transmissão</b><div class="tip">Permite que os outros vejam uma prévia (fotinho atualizada) da sua transmissão antes de entrarem nela.</div></div><input type="checkbox" class="tsw" id="sLivePrev"></div>
         <div class="tog"><div><b>Mostrar configurações avançadas da transmissão</b><div class="tip">Atenuação da transmissão, intensidade da atenuação e mais</div></div><button class="ib advBtn" id="sAdvBtn">⌄</button></div>
         <div id="sAdv" hidden>
@@ -1118,7 +1127,7 @@
 
 <script>
 // aumente a cada atualização: os .exe dos amigos baixam sozinhos quando o número sobe
-const APP_VERSION = 35;
+const APP_VERSION = 36;
 const $ = id => document.getElementById(id);
 const PREFIX = 'telacall-v1-';
 const ICE = { iceServers: [
@@ -4336,7 +4345,8 @@ function onCallData(id, msg) {
     }
   } else if (msg.t === 'lstat') {
     // quem transmite conta como a live está saindo pra mim e por que caiu (internet / PC / placa de vídeo dele)
-    m.lstat = { w: +msg.w || 0, h: +msg.h || 0, fps: +msg.fps || 0, why: ['internet', 'peso', 'pc', 'placa'].includes(msg.why) ? msg.why : '', at: Date.now() };
+    m.lstat = { w: +msg.w || 0, h: +msg.h || 0, fps: +msg.fps || 0, why: ['internet', 'peso', 'pc', 'placa'].includes(msg.why) ? msg.why : '',
+                prio: msg.prio === 'res' ? 'res' : 'fps', at: Date.now() };
   } else if (msg.t === 'lrecv') {
     // quem assiste a minha live contou como está chegando lá (resolução, fps na tela dele, perda no caminho)
     const n = (x, max) => Math.min(max, Math.max(0, Math.round(+x || 0)));
@@ -4710,7 +4720,7 @@ setInterval(checkUpdate, 30 * 60000);
 // ---------- tela de configurações (igual Discord) ----------
 const S_TITLES = { voz: 'Voz e vídeo', transmissao: 'Voz e vídeo', sons: 'Voz e vídeo', conta: 'Minha conta', sistema: 'Sistema' };
 const S_WORDS = { conta: 'conta usuario nome codigo', perfil: 'perfil foto fundo tema sobre', voz: 'voz video microfone alto-falante fone volume teste ruido eco sensibilidade',
-                  transmissao: 'transmissao tela qualidade fps 60 som', sons: 'sons barulho entrar sair mensagem', sistema: 'sistema windows iniciar versao atualizacao' };
+                  transmissao: 'transmissao tela qualidade fps 60 som resolucao fixa', sons: 'sons barulho entrar sair mensagem', sistema: 'sistema windows iniciar versao atualizacao' };
 async function openSettings(page = 'voz') {
   fetch('/api/update', { headers: { 'X-TelaCall': '1' }, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null).then(i => {
     $('verInfo').textContent = `Concorde · versão ${APP_VERSION}`;
@@ -4737,6 +4747,7 @@ function paintSettings() {
   $('optNs').checked = settings.ns; $('optEc').checked = settings.ec; $('optAgc').checked = settings.agc;
   $('optAiNs').checked = settings.aiNs !== false; $('optAiNs').disabled = settings.inProf === 'studio';
   $('sQuality').value = $('quality').value; $('sShareAudio').checked = $('shareAudio').checked; $('sCutOwn').checked = settings.cutOwn;
+  $('sPrio').value = livePrio();
   $('sndVol').value = settings.sndVol; $('optGame').checked = settings.showGame !== false;
   $('sLivePrev').checked = settings.livePreview; $('sDuck').checked = settings.duck; $('sDuckAmt').value = settings.duckAmt;
   // um interruptor por som, com "Prévia do som" (igual Discord)
@@ -4807,6 +4818,15 @@ $('optAiNs').onchange = async () => {
   else toast(settings.aiNs ? (aiNsOn() ? '🤖 Supressão de ruído com IA ligada' : 'Ligue a supressão de ruído pra IA funcionar') : 'Supressão de ruído com IA desligada');
 };
 $('sQuality').onchange = () => { $('quality').value = $('sQuality').value; $('quality').onchange(); };
+// resolução fixa x fps liso: vale na hora pra quem já está assistindo
+function setLivePrio(v) {
+  settings.livePrio = v === 'fps' ? 'fps' : 'res'; save('settings', settings);
+  $('sPrio').value = $('liPrio').value = livePrio();
+  for (const m of members.values()) if (m.screenOut) lockFramerate(m.screenOut);
+  toast(livePrio() === 'fps' ? '🎮 FPS liso: se apertar, a resolução baixa e o fps se mantém' : '📐 Resolução fixa: fica sempre na que você escolheu; se apertar, cai um pouco o fps');
+}
+$('sPrio').onchange = () => setLivePrio($('sPrio').value);
+$('liPrio').onchange = () => setLivePrio($('liPrio').value);
 $('sCutOwn').onchange = () => { settings.cutOwn = $('sCutOwn').checked; save('settings', settings); if (screen && screenKind === 'screen') toast('Vale a partir da próxima vez que você compartilhar a tela.'); };
 $('sShareAudio').onchange = () => { $('shareAudio').checked = $('sShareAudio').checked; $('shareAudio').onchange(); updateButtons(); };
 $('sLivePrev').onchange = () => { settings.livePreview = $('sLivePrev').checked; save('settings', settings); };
@@ -4854,13 +4874,16 @@ const capRate = q => ({ ideal: q.fps, max: q.fps });
 function smoothScreen(call) {
   try { for (const r of call.peerConnection.getReceivers()) if ('jitterBufferTarget' in r) r.jitterBufferTarget = 150; } catch {}
 }
+// v36: o que ceder quando a internet ou o PC de quem transmite apertar (quem transmite escolhe).
+// Medido (1080p60 com teto de 1,5 Mbps): "fps liso" despencava pra 270p e ficava variando a resolução;
+// "resolução fixa" segurou 1080p o tempo todo e o fps ficou entre 33 e 47. Padrão: resolução fixa.
+const livePrio = () => settings.livePrio === 'fps' ? 'fps' : 'res';
 function lockFramerate(call) {
-  const q = curQ();
   try {
     for (const s of call.peerConnection.getSenders()) {
       if (s.track?.kind !== 'video') continue;
       const prm = s.getParameters();
-      prm.degradationPreference = 'maintain-framerate'; // lisinho primeiro: se apertar, cai um pouco a nitidez, não o fps
+      prm.degradationPreference = livePrio() === 'fps' ? 'maintain-framerate' : 'maintain-resolution';
       s.setParameters(prm).catch(() => {});
     }
   } catch {}
@@ -5208,9 +5231,13 @@ let liveOut = null; // última medida do que está saindo pra cada um (atualiza 
 //  'peso'     = a internet sobra, mas a imagem tem tanto movimento que não cabe no teto de Mbps da qualidade
 function limitOf(o, avail) {
   if (o.qualityLimitationReason === 'cpu') return 'pc';
-  if (o.qualityLimitationReason !== 'bandwidth') return '';
+  // resolução fixa: o navegador não acusa nada, só manda menos quadros do que a captura entrega
+  const dropping = o.qualityLimitationReason === 'bandwidth' || (o._src > 10 && (o.framesPerSecond || 0) < o._src * 0.8);
+  if (!dropping) return '';
   return avail && avail / 1000 >= curQ().kbps * 0.85 ? 'peso' : 'internet';
 }
+// o que caiu quando aperta, conforme a escolha de quem transmite
+const dropWord = () => livePrio() === 'fps' ? 'a resolução baixou pra manter o fps' : 'o fps caiu pra manter a resolução';
 const qName = k => $('quality').querySelector(`option[value="${k}"]`)?.textContent || k;
 const fmtMbps = kbps => (kbps / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' Mbps';
 function openLiveInfo() {
@@ -5241,6 +5268,7 @@ function paintLiveInfo() {
   if ($('liPrev').srcObject !== screen) $('liPrev').srcObject = screen; // trocou de tela/câmera com o painel aberto
   $('liPrevRes').textContent = document.querySelector('.screen[data-sid="me"] .q')?.textContent || '';
   if (document.activeElement !== $('liQuality')) $('liQuality').value = $('quality').value;
+  if (document.activeElement !== $('liPrio')) $('liPrio').value = livePrio();
   const capFps = Math.round(liveOut?.cap || s.frameRate || 0);
   $('liCap').textContent = `Seu PC está capturando ${s.width || '?'}×${s.height || '?'}${capFps ? ' a ' + capFps + 'fps' : ''}` +
     (q.fps >= 60 && capFps && capFps < 50 ? ' (abaixo de 60: o jogo está usando a placa de vídeo inteira, limite o FPS do jogo)' : '') +
@@ -5256,10 +5284,11 @@ function paintLiveInfo() {
     const limited = !!x.r;
     const fps = Math.round(rec?.fps || x.fps);
     const why = x.r === 'internet' ? '📶 sua internet (upload) não está dando conta' : x.r === 'cpu' || x.r === 'pc' ? '💻 seu PC está pesado pra codificar a live'
-      : x.r === 'peso' ? `🎞️ muito movimento pra caber em ${fmtMbps(q.kbps)}: baixou a resolução pra manter o fps (em 30fps fica mais nítido)`
-      : lowCapTicks >= 2 ? '🎮 placa de vídeo cheia: limite o FPS do jogo' : rec?.loss >= 3 ? `⚠️ perdendo ${rec.loss}% no caminho (internet dele ou a sua)`
+      : x.r === 'peso' ? `🎞️ muito movimento pra caber em ${fmtMbps(q.kbps)}: ${dropWord()}`
+      : lowCapTicks >= 2 ? `🎮 sua tela entrega só ${capFps}fps (jogo: placa de vídeo cheia, limite o FPS do jogo · filme: é normal)`
+      : rec?.loss >= 3 ? `⚠️ perdendo ${rec.loss}% no caminho (internet dele ou a sua)`
       : x.h >= srcH * 0.95 ? '✅ qualidade cheia' : '';
-    const cls = limited ? (x.h < srcH * 0.6 ? 'bad' : 'mid') : rec?.loss >= 3 || lowCapTicks >= 2 ? 'mid' : 'good';
+    const cls = limited ? (x.h < srcH * 0.6 || fps < q.fps * 0.6 ? 'bad' : 'mid') : rec?.loss >= 3 || lowCapTicks >= 2 ? 'mid' : 'good';
     const row = el('div', 'liRow');
     const left = el('div'); left.style.minWidth = '0';
     left.append(el('div', 'nm', x.m.name || '...'), el('div', 'wy', [why, x.kbps ? 'mandando ' + fmtMbps(x.kbps) : ''].filter(Boolean).join(' · ')));
@@ -5294,11 +5323,11 @@ setInterval(async () => {
       const outs = [];
       for (const m of members.values()) {
         if (!m.screenOut) continue;
-        let o = null, avail = 0;
+        let o = null, avail = 0, src = 0;
         try {
           (await m.screenOut.peerConnection?.getStats())?.forEach(r => {
             if (r.type === 'outbound-rtp' && r.kind === 'video' && r.frameHeight) o = r;
-            if (r.type === 'media-source' && r.kind === 'video' && r.framesPerSecond) cap = r.framesPerSecond; // quadros que a captura da tela entrega
+            if (r.type === 'media-source' && r.kind === 'video' && r.framesPerSecond) cap = src = r.framesPerSecond; // quadros que a captura da tela entrega
             // quanto a internet aguenta mandar nessa conexão (o navegador mede sozinho, até o teto da qualidade)
             if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded' && r.availableOutgoingBitrate) avail = r.availableOutgoingBitrate;
           });
@@ -5306,6 +5335,7 @@ setInterval(async () => {
         if (!o) continue;
         const pv = m._outPrev; m._outPrev = { b: o.bytesSent, t: o.timestamp };
         const kbps = pv && o.timestamp > pv.t && o.bytesSent >= pv.b ? (o.bytesSent - pv.b) * 8 / (o.timestamp - pv.t) : 0;
+        o._src = src; // pra saber se o codificador está jogando quadros fora (resolução fixa: cai o fps, não a resolução)
         outs.push([m, o, kbps, avail]);
         if (!worst || o.frameHeight * (o.framesPerSecond || 1) < worst.frameHeight * (worst.framesPerSecond || 1)) { worst = o; worstAvail = avail; }
       }
@@ -5316,22 +5346,22 @@ setInterval(async () => {
         // a própria captura não chega a 60: quase sempre é jogo usando a placa de vídeo inteira (testado: placa a 100% = ~25fps)
         const gpuLow = !why && curQ().fps >= 60 && cap && cap < 50 && fps < 50;
         lowCapTicks = gpuLow ? lowCapTicks + 1 : 0;
-        if (lowCapTicks >= 2) why = ' · placa de vídeo cheia';
+        // filme tem 24/30 quadros: captura baixa aí é normal. Jogo com a placa de vídeo cheia também derruba a captura.
+        if (lowCapTicks >= 2) why = ` · captura a ${Math.round(cap)}fps`;
         if (lowCapTicks === 5 && !lowCapWarned) {
           lowCapWarned = true;
-          toast('🎮 A live caiu pra ' + Math.round(cap) + 'fps porque o jogo está usando a placa de vídeo inteira. Limite o FPS do jogo (ex.: 120, ou ligue o V-Sync / Radeon Chill) que a live fica lisa.', 12000);
+          toast(`🎮 Sua tela está entregando só ${Math.round(cap)}fps pra live. Se for jogo, é a placa de vídeo cheia: limite o FPS do jogo (ex.: 120, ou ligue o V-Sync / Radeon Chill) que a live fica lisa. Se for filme ou vídeo, é normal, pode ignorar.`, 12000);
         }
-        // o upload não aguenta a qualidade escolhida e a imagem ficou bem menor (borrada): sugere uma que cabe
+        // o upload não aguenta a qualidade escolhida: a resolução (fps liso) ou o fps (resolução fixa) caiu bastante
         const srcH = screen?.getVideoTracks()[0]?.getSettings().height || curQ().h;
-        const netLow = limitOf(worst, worstAvail) === 'internet' && worst.frameHeight < srcH * 0.6;
+        const netLow = limitOf(worst, worstAvail) === 'internet' && (worst.frameHeight < srcH * 0.6 || fps < curQ().fps * 0.6);
         lowNetTicks = netLow ? lowNetTicks + 1 : 0;
         if (lowNetTicks === 10 && !lowNetWarned) { // 20 s seguidos: o começo da live (internet ainda subindo) não conta
           lowNetWarned = true;
           const cur = $('quality').value, kb = (worst.targetBitrate || 0) / 1000;
           const fit = Object.keys(QUALITY).find(k => k !== cur && QUALITY[k].kbps < QUALITY[cur]?.kbps && QUALITY[k].kbps <= kb * 1.3) || '720p30';
-          const name = k => $('quality').querySelector(`option[value="${k}"]`)?.textContent || k;
-          toast(`📶 Sua internet (upload) não está dando conta do ${name(cur)}: a live está chegando em ${worst.frameWidth}×${worst.frameHeight} pra quem assiste, borrada. ` +
-            `Escolha uma qualidade menor lá embaixo (ex.: ${name(fit)}) que a imagem fica mais nítida.`, 15000);
+          toast(`📶 Sua internet (upload) não está dando conta do ${qName(cur)}: a live está chegando em ${worst.frameWidth}×${worst.frameHeight} a ${Math.round(fps)}fps pra quem assiste. ` +
+            `Escolha uma qualidade menor lá embaixo (ex.: ${qName(fit)}) que fica mais liso e nítido.`, 15000);
         }
       } else {
         const s = screen?.getVideoTracks()[0]?.getSettings();
@@ -5343,12 +5373,12 @@ setInterval(async () => {
       badge.textContent = `${h >= 1440 ? 'Quad HD ' : h >= 1080 ? 'Full HD ' : ''}${w}×${h}${fps ? ' · ' + Math.round(fps) + 'fps' : ''}${why}${alone ? ' · ninguém assistindo' : ''}`;
       badge.classList.toggle('hd', h >= 1080 && !why);
       badge.title = (why ? 'A qualidade caiu por causa ' + (why.includes('internet') ? 'da internet (upload). Tente 30fps ou 720p.'
-        : why.includes('movimento') ? 'da imagem com muito movimento, que não cabe nos Mbps da qualidade escolhida: a resolução baixou pra manter o fps. Em 30fps fica mais nítido.'
-        : why.includes('placa') ?'do jogo usando a placa de vídeo inteira: sobra pouco pra capturar a tela. Limite o FPS do jogo (ex.: 120) ou ligue o V-Sync / Radeon Chill.'
+        : why.includes('movimento') ? `da imagem com muito movimento, que não cabe nos Mbps da qualidade escolhida: ${dropWord()}.`
+        : why.includes('captura') ? 'da tela entregando poucos quadros. Jogo: a placa de vídeo está cheia, limite o FPS do jogo (ex.: 120) ou ligue o V-Sync / Radeon Chill. Filme ou vídeo: é normal (24 ou 30 quadros).'
         : 'do PC pesado. Feche programas ou use 720p.') : 'Qualidade que está saindo pros amigos') + '\nClique pra ver o que está chegando em cada amigo.';
       // conta pra cada um como está saindo pra ele: o selo de quem assiste mostra o motivo (ex.: "internet de Pingo")
       for (const [m, o, , avail] of outs) if (m.data?.open)
-        m.data.send({ t: 'lstat', w: o.frameWidth, h: o.frameHeight, fps: Math.round(o.framesPerSecond || 0),
+        m.data.send({ t: 'lstat', w: o.frameWidth, h: o.frameHeight, fps: Math.round(o.framesPerSecond || 0), prio: livePrio(),
           why: limitOf(o, avail) || (lowCapTicks >= 2 ? 'placa' : '') });
       continue;
     }
@@ -5367,7 +5397,8 @@ setInterval(async () => {
     const ls = m?.lstat && Date.now() - m.lstat.at < 7000 ? m.lstat : null;
     const who = (m?.name || '').trim().split(/\s+/)[0] || 'quem transmite';
     const why = ls?.why === 'internet' ? ' · internet de ' + who : ls?.why === 'pc' ? ' · PC de ' + who + ' pesado' : ls?.why === 'peso' ? ' · muito movimento'
-      : ls?.why === 'placa' ? ' · placa de vídeo de ' + who + ' cheia' : loss > 0.03 || frz > p.frz ? ' · conexão instável' : '';
+      : ls?.why === 'placa' ? ' · captura de ' + who + ' lenta' : loss > 0.03 || frz > p.frz ? ' · conexão instável' : '';
+    const drop = ls?.prio === 'res' ? 'o fps caiu pra manter a resolução' : 'a resolução baixou pra manter o fps'; // versão antiga: fps liso
     // conta pra quem transmite como está chegando aqui (aparece no painel "Como está saindo" dele)
     if (m?.data?.open && m.screenIn) m.data.send({ t: 'lrecv', w, h, fps: Math.round(fps), loss: Math.round(loss * 100), frz: frz > p.frz ? 1 : 0 });
     if (!h) continue;
@@ -5376,8 +5407,8 @@ setInterval(async () => {
     badge.title = !why ? 'Qualidade que está chegando agora (quem transmite escolhe)'
       : why.includes('internet') ? `A internet (upload) de ${who} não está dando conta da qualidade escolhida, por isso a imagem caiu. ${who} pode escolher uma qualidade menor.`
       : why.includes('PC') ? `O PC de ${who} está pesado demais pra codificar a live. Fechar programas ou usar 720p ajuda.`
-      : why.includes('movimento') ? `A imagem de ${who} tem tanto movimento que não cabe nos Mbps da qualidade escolhida: a resolução baixou pra manter o fps. Em 30fps fica mais nítido.`
-      : why.includes('placa') ? `O jogo de ${who} está usando a placa de vídeo inteira. Limitar o FPS do jogo (ex.: 120) deixa a live lisa.`
+      : why.includes('movimento') ? `A imagem de ${who} tem tanto movimento que não cabe nos Mbps da qualidade escolhida: ${drop}.`
+      : why.includes('captura') ? `A tela de ${who} está entregando poucos quadros. Se for jogo, a placa de vídeo dele está cheia (limitar o FPS do jogo ajuda). Se for filme, é normal.`
       : `Estão se perdendo pacotes no caminho (${Math.round(loss * 100)}%): pode ser a sua internet ou a de ${who}. Wi-Fi fraco e downloads ao mesmo tempo pioram.`;
   }
 }, 2000);
